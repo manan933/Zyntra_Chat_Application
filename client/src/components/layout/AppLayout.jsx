@@ -51,8 +51,8 @@ const AppLayout = ({ children, sidebar, isMobileChatOpen = false }) => {
       style={{
         display: 'flex',
         flexDirection: 'row',
-        width: '100vw',
-        height: '100dvh',
+        width: '100%',
+        height: '100%',
         overflow: 'hidden',
         backgroundColor: 'var(--color-bg-primary)',
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
@@ -157,7 +157,8 @@ const AppLayout = ({ children, sidebar, isMobileChatOpen = false }) => {
       <main
         style={{
           flex: 1,
-          minWidth: 0,           // CRITICAL: prevents flex child from overflowing
+          minWidth: 0,
+          minHeight: 0,          // CRITICAL: prevents vertical flex blowout
           height: '100%',
           display: showMain ? 'flex' : 'none',
           flexDirection: 'column',

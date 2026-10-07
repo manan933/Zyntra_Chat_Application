@@ -34,7 +34,7 @@ const PageWrapper = ({ children }) => (
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -10 }}
     transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-    style={{ height: '100%', width: '100%' }}
+    style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
   >
     {children}
   </motion.div>
