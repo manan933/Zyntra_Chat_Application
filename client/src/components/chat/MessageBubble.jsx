@@ -1,319 +1,215 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, SmilePlus, Pencil, Trash2, CheckCheck, FileText, Image as ImageIcon, Download } from 'lucide-react';
+import { CheckCheck, Download, FileText, MoreVertical, SmilePlus, Pencil, Trash2, Copy, Check } from 'lucide-react';
 import Avatar from '../ui/Avatar';
-import useChatStore from '../../store/useChatStore';
-import useThemeStore from '../../store/useThemeStore';
-import useAuthStore from '../../store/useAuthStore';
-import { getFileUrl } from '../../services/api';
-import ImageViewerModal from './ImageViewerModal';
+import ImageViewer from '../ui/ImageViewer';
+import { getFileUrl } from '../../api/api';
 
-const QUICK_REACTIONS = ['👍', '❤️', '🔥', '🎉', '🚀', '😂'];
+const QUICK_EMOJIS = ['👍', '❤️', '🔥', '😂', '🎉', '🚀'];
 
-const MessageBubble = ({
+export const MessageBubble = ({
   message,
-  isOwn,
-  policy = {},
-  chatId,
+  isOwn = false,
   onReply,
-  isFirstInGroup = true,
-  isLastInGroup = true,
+  onEdit,
+  onDelete,
+  onReaction,
+  currentUserId,
 }) => {
-  const [hovered, setHovered] = useState(false);
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(message.content);
-  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [editText, setEditText] = useState(message.content || '');
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const { deleteMessage, editMessage, addReaction } = useChatStore();
-  const sentBubbleColor = useThemeStore((s) => s.sentBubbleColor) || 'var(--color-accent)';
-  const sentBubbleTextColor = useThemeStore((s) => s.sentBubbleTextColor) || '#ffffff';
-  const receivedBubbleColor = useThemeStore((s) => s.receivedBubbleColor) || 'var(--color-bg-tertiary)';
-  const receivedBubbleTextColor = useThemeStore((s) => s.receivedBubbleTextColor) || 'var(--color-text-primary)';
+  const { id, senderName, senderAvatar, content, timestamp, attachment, reactions = [], isEdited } = message;
 
-  const { id, senderName, content, timestamp, reactions = [], isEdited } = message;
-  const user = useAuthStore((s) => s.user);
-  const contacts = useChatStore((s) => s.contacts) || [];
+  const time = timestamp
+    ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
 
-  const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  const senderContact = contacts.find(
-    (c) =>
-      (message.senderUsername &&
-        c.username?.replace(/^@/, '').toLowerCase() ===
-          message.senderUsername.replace(/^@/, '').toLowerCase()) ||
-      c.id === message.senderId
-  );
-
-  const displayAvatar = isOwn
-    ? (user?.avatar || message.senderAvatar || null)
-    : (message.senderAvatar || senderContact?.avatar || null);
-
-  const handleSaveEdit = () => {
-    if (editContent.trim()) {
-      editMessage(chatId, id, editContent.trim());
-      setIsEditing(false);
+  const handleCopy = () => {
+    if (content) {
+      navigator.clipboard?.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+      setShowMenu(false);
     }
   };
 
-  const handleAddReaction = (emoji) => {
-    addReaction(chatId, id, emoji);
-    setShowReactionPicker(false);
+  const handleSaveEdit = () => {
+    if (editText.trim() && editText.trim() !== content) {
+      onEdit?.(id, editText.trim());
+    }
+    setIsEditing(false);
   };
 
-  // Bubble radius with tail morphology (iMessage-style)
-  const R = 16; // base radius
-  const tailR = 4; // tail corner
-  const borderRadius = isOwn
-    ? `${R}px ${isFirstInGroup ? R : 4}px ${isLastInGroup ? tailR : R}px ${R}px`
-    : `${isFirstInGroup ? R : 4}px ${R}px ${R}px ${isLastInGroup ? tailR : R}px`;
+  const isImage =
+    attachment && (attachment.type === 'image' || attachment.mimeType?.startsWith('image/'));
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-      style={{
-        display: 'flex',
-        flexDirection: isOwn ? 'row-reverse' : 'row',
-        alignItems: 'flex-end',
-        gap: '8px',
-        width: '100%',
-        position: 'relative',
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setShowReactionPicker(false); }}
-      onClick={(e) => {
-        // Prevent toggle if clicking within the action menu itself or input
-        if (e.target.closest('button') || e.target.closest('input')) return;
-        if ('ontouchstart' in window) setHovered(!hovered);
+    <div
+      className={`group relative flex items-end gap-2 w-full my-1 ${
+        isOwn ? 'flex-row-reverse' : 'flex-row'
+      }`}
+      onMouseLeave={() => {
+        setShowMenu(false);
+        setShowEmojiPicker(false);
       }}
     >
-      {/* Avatar — only for first in group */}
+      {/* Sender Avatar (received only) */}
       {!isOwn && (
-        <div style={{ flexShrink: 0, width: '32px', marginBottom: '2px', visibility: isLastInGroup ? 'visible' : 'hidden' }}>
-          <Avatar name={senderName} src={displayAvatar} size="sm" />
-        </div>
+        <Avatar name={senderName || 'Member'} src={senderAvatar} size="sm" className="mb-1" />
       )}
 
-      {/* Bubble + Actions */}
+      {/* Bubble Container */}
       <div
-        style={{
-          maxWidth: 'min(86%, 520px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: isOwn ? 'flex-end' : 'flex-start',
-          position: 'relative',
-          gap: '3px',
-        }}
+        className={`relative max-w-[85%] sm:max-w-[70%] flex flex-col ${
+          isOwn ? 'items-end' : 'items-start'
+        }`}
       >
-        {/* Sender label (first in group, not own) */}
-        <AnimatePresence>
-          {!isOwn && isFirstInGroup && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--color-accent)',
-                paddingLeft: '4px',
-                marginBottom: '1px',
-                userSelect: 'none',
-              }}
-            >
-              {senderName}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Sender Name in group contexts */}
+        {!isOwn && senderName && (
+          <span className="text-[11px] font-bold text-[var(--accent)] px-2 mb-0.5 select-none">
+            {senderName}
+          </span>
+        )}
 
-        {/* Floating Action Menu */}
-        <AnimatePresence>
-          {hovered && !isEditing && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 4 }}
-              transition={{ duration: 0.12, ease: [0.23, 1, 0.32, 1] }}
-              style={{
-                position: 'absolute',
-                top: '-40px',
-                right: isOwn ? 0 : 'auto',
-                left: isOwn ? 'auto' : 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1px',
-                backgroundColor: 'var(--color-bg-primary)',
-                border: '1px solid var(--color-border-primary)',
-                boxShadow: 'var(--elevation-3)',
-                borderRadius: '12px',
-                padding: '4px 6px',
-                zIndex: 20,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {policy.reactions !== false && (
-                <div style={{ position: 'relative' }}>
-                  <ActionBtn onClick={() => setShowReactionPicker(!showReactionPicker)} title="React">
-                    <SmilePlus size={14} />
-                  </ActionBtn>
-                  <AnimatePresence>
-                    {showReactionPicker && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8, y: 4 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: 4 }}
-                        transition={{ duration: 0.12 }}
-                        style={{
-                          position: 'absolute',
-                          bottom: 'calc(100% + 6px)',
-                          left: 0,
-                          display: 'flex',
-                          gap: '3px',
-                          backgroundColor: 'var(--color-bg-primary)',
-                          border: '1px solid var(--color-border-primary)',
-                          boxShadow: 'var(--elevation-3)',
-                          borderRadius: '14px',
-                          padding: '6px 8px',
-                          zIndex: 30,
-                        }}
-                      >
-                        {QUICK_REACTIONS.map((emoji) => (
-                          <motion.button
-                            key={emoji}
-                            whileHover={{ scale: 1.3 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => handleAddReaction(emoji)}
-                            style={{
-                              width: '30px', height: '30px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: 'none', background: 'none',
-                              fontSize: '17px', cursor: 'pointer',
-                              borderRadius: '8px',
-                            }}
-                          >
-                            {emoji}
-                          </motion.button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-              <ActionBtn onClick={() => onReply && onReply(message)} title="Reply">
-                <Reply size={14} />
-              </ActionBtn>
-              {isOwn && policy.editMessage !== false && (
-                <ActionBtn onClick={() => setIsEditing(true)} title="Edit">
-                  <Pencil size={14} />
-                </ActionBtn>
-              )}
-              {isOwn && policy.deleteMessage !== false && (
-                <ActionBtn
-                  onClick={() => deleteMessage(chatId, id)}
-                  title="Delete"
-                  danger
-                >
-                  <Trash2 size={14} />
-                </ActionBtn>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* The Bubble */}
+        {/* Floating Quick Action Toolbar */}
         <div
-          style={{
-            padding: '9px 14px',
-            borderRadius,
-            backgroundColor: isOwn ? sentBubbleColor : receivedBubbleColor,
-            color: isOwn ? sentBubbleTextColor : receivedBubbleTextColor,
-            fontSize: '14px',
-            lineHeight: 1.5,
-            wordBreak: 'break-word',
-            boxShadow: isOwn
-              ? '0 2px 12px rgba(0, 0, 0, 0.18)'
-              : '0 1px 4px rgba(0, 0, 0, 0.06)',
-            border: isOwn ? 'none' : '1px solid var(--color-border-primary)',
-            maxWidth: '100%',
-            boxSizing: 'border-box',
-          }}
+          className={`absolute -top-7 ${
+            isOwn ? 'right-0' : 'left-0'
+          } flex items-center gap-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded-full px-1.5 py-0.5 shadow-md z-20 transition-opacity ${
+            showMenu || showEmojiPicker ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+          }`}
         >
-          {/* Attachment */}
-          {message.attachment && (
-            <div style={{ marginBottom: content ? '8px' : '2px' }}>
-              {(message.attachment.type === 'image' || message.attachment.mimeType?.startsWith('image/')) ? (
-                <div>
-                  <div
-                    onClick={() => setIsImageViewerOpen(true)}
-                    className="relative group overflow-hidden cursor-pointer"
-                    style={{
-                      maxWidth: '320px',
-                      maxHeight: '240px',
-                      borderRadius: '10px',
-                      backgroundColor: 'rgba(0,0,0,0.05)',
-                      border: '1px solid rgba(0,0,0,0.08)',
+          {/* Reaction Trigger */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+              title="Add Reaction"
+            >
+              <SmilePlus size={14} />
+            </button>
+
+            {/* Quick Emoji Bar Popover */}
+            {showEmojiPicker && (
+              <div
+                className={`absolute bottom-full mb-1.5 ${
+                  isOwn ? 'right-0' : 'left-0'
+                } flex items-center gap-1 bg-[var(--bg-primary)] border border-[var(--border)] rounded-full px-2 py-1 shadow-xl z-30`}
+              >
+                {QUICK_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      onReaction?.(id, emoji);
+                      setShowEmojiPicker(false);
                     }}
+                    className="w-7 h-7 flex items-center justify-center text-sm hover:scale-125 transition-transform cursor-pointer border-none bg-transparent"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Copy Message */}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+            title="Copy Text"
+          >
+            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+          </button>
+
+          {/* Own Message Actions: Edit & Delete */}
+          {isOwn && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete?.(id)}
+                className="p-1 rounded-full text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-red-500/10 transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                title="Delete"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Message Bubble Body */}
+        <div
+          onClick={() => {
+            // Mobile tap anywhere on bubble to reveal action menu
+            if (window.innerWidth < 768) setShowMenu((prev) => !prev);
+          }}
+          className={`relative px-3.5 py-2 rounded-2xl text-[14px] leading-relaxed break-words shadow-xs transition-shadow ${
+            isOwn
+              ? 'bg-[var(--bubble-sent)] text-[var(--bubble-sent-text)] rounded-br-xs'
+              : 'bg-[var(--bubble-received)] text-[var(--bubble-received-text)] border border-[var(--border)] rounded-bl-xs'
+          }`}
+        >
+          {/* Attachment Presentation */}
+          {attachment && (
+            <div className="mb-2">
+              {isImage ? (
+                <>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImagePreviewOpen(true);
+                    }}
+                    className="cursor-pointer overflow-hidden rounded-xl border border-white/10 max-w-[280px] max-h-[200px]"
                   >
                     <img
-                      src={getFileUrl(message.attachment.url)}
-                      alt={message.attachment.name || 'Photo'}
-                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-                      style={{ maxHeight: '240px', display: 'block' }}
+                      src={getFileUrl(attachment.url)}
+                      alt={attachment.name || 'Photo'}
+                      className="w-full h-full object-cover hover:scale-102 transition-transform duration-200"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <span className="bg-black/60 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-1.5">
-                        <ImageIcon size={12} /> View
-                      </span>
-                    </div>
                   </div>
-                  <ImageViewerModal
-                    isOpen={isImageViewerOpen}
-                    onClose={() => setIsImageViewerOpen(false)}
-                    src={message.attachment.url}
-                    alt={message.attachment.name}
-                    filename={message.attachment.name}
+                  <ImageViewer
+                    isOpen={imagePreviewOpen}
+                    onClose={() => setImagePreviewOpen(false)}
+                    src={attachment.url}
+                    title={attachment.name}
                   />
-                </div>
+                </>
               ) : (
                 <div
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 12px', borderRadius: '10px',
-                    backgroundColor: isOwn ? 'rgba(255,255,255,0.15)' : 'var(--color-bg-primary)',
-                    border: isOwn ? '1px solid rgba(255,255,255,0.2)' : '1px solid var(--color-border-primary)',
-                    maxWidth: '280px',
-                  }}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border ${
+                    isOwn ? 'bg-white/15 border-white/20' : 'bg-[var(--bg-secondary)] border-[var(--border)]'
+                  }`}
                 >
-                  <div style={{
-                    width: '34px', height: '34px', borderRadius: '8px',
-                    backgroundColor: isOwn ? 'rgba(255,255,255,0.2)' : 'rgba(var(--color-accent-rgb), 0.1)',
-                    color: isOwn ? '#ffffff' : 'var(--color-accent)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <FileText size={17} />
+                  <div className="w-8 h-8 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center shrink-0">
+                    <FileText size={16} />
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isOwn ? '#ffffff' : 'var(--color-text-primary)' }}>
-                      {message.attachment.name}
-                    </div>
-                    {message.attachment.size && (
-                      <div style={{ fontSize: '10px', color: isOwn ? 'rgba(255,255,255,0.7)' : 'var(--color-text-tertiary)' }}>
-                        {message.attachment.size}
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold truncate">{attachment.name}</div>
+                    {attachment.size && (
+                      <div className="text-[10px] opacity-75">{attachment.size}</div>
                     )}
                   </div>
                   <a
-                    href={getFileUrl(message.attachment.url)}
-                    target="_blank" rel="noopener noreferrer"
-                    download={message.attachment.name}
-                    style={{
-                      padding: '6px', borderRadius: '7px', flexShrink: 0, textDecoration: 'none',
-                      backgroundColor: isOwn ? 'rgba(255,255,255,0.2)' : 'var(--color-bg-secondary)',
-                      color: isOwn ? '#ffffff' : 'var(--color-text-secondary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
+                    href={getFileUrl(attachment.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={attachment.name}
+                    className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-current flex items-center justify-center shrink-0 transition-colors"
                   >
                     <Download size={14} />
                   </a>
@@ -322,107 +218,79 @@ const MessageBubble = ({
             </div>
           )}
 
-          {/* Message Text or Edit Mode */}
+          {/* Text Content or Inline Edit Input */}
           {isEditing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="flex flex-col gap-2 min-w-[200px]" onClick={(e) => e.stopPropagation()}>
               <input
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                style={{
-                  width: '100%', padding: '6px 10px',
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  color: '#ffffff', borderRadius: '8px',
-                  fontSize: '13px', border: '1px solid rgba(255,255,255,0.3)', outline: 'none',
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit();
+                  if (e.key === 'Escape') setIsEditing(false);
                 }}
+                className="w-full px-2.5 py-1 rounded-lg bg-white/20 text-white border border-white/30 outline-none text-xs"
                 autoFocus
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') setIsEditing(false); }}
               />
-              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setIsEditing(false)} style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', backgroundColor: 'rgba(255,255,255,0.15)', color: '#ffffff', border: 'none', cursor: 'pointer' }}>Cancel</button>
-                <button onClick={handleSaveEdit} style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '11px', backgroundColor: '#ffffff', color: 'var(--color-accent)', fontWeight: 700, border: 'none', cursor: 'pointer' }}>Save</button>
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-2 py-0.5 rounded text-[11px] bg-white/15 hover:bg-white/25 cursor-pointer border-none text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  className="px-2 py-0.5 rounded text-[11px] bg-white font-bold text-[var(--accent)] hover:opacity-90 cursor-pointer border-none"
+                >
+                  Save
+                </button>
               </div>
             </div>
           ) : (
-            content ? <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div> : null
+            content && <div className="whitespace-pre-wrap">{content}</div>
           )}
 
-          {/* Meta: time + read receipt */}
+          {/* Time & Read Status Indicator */}
           <div
-            style={{
-              fontSize: '10px', marginTop: '4px',
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'flex-end', gap: '4px',
-              userSelect: 'none',
-              color: isOwn
-                ? (sentBubbleTextColor === '#ffffff' ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.45)')
-                : 'var(--color-text-tertiary)',
-            }}
+            className={`flex items-center justify-end gap-1 mt-1 text-[10px] select-none ${
+              isOwn ? 'text-white/75' : 'text-[var(--text-muted)]'
+            }`}
           >
-            {isEdited && <span style={{ fontStyle: 'italic' }}>edited</span>}
+            {isEdited && <span className="italic">edited</span>}
             <span>{time}</span>
-            {isOwn && (
-              <CheckCheck size={12} style={{ color: sentBubbleTextColor === '#ffffff' ? 'rgba(255,255,255,0.75)' : 'currentColor' }} />
-            )}
+            {isOwn && <CheckCheck size={12} className="text-white/90" />}
           </div>
         </div>
 
         {/* Reaction Badges */}
         {reactions.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
-            {reactions.map((r, i) => (
-              <motion.button
-                key={i}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleAddReaction(r.emoji)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  padding: '2px 8px', borderRadius: '999px', fontSize: '12px',
-                  border: `1px solid ${r.userReacted ? 'rgba(var(--color-accent-rgb), 0.4)' : 'var(--color-border-primary)'}`,
-                  backgroundColor: r.userReacted ? 'rgba(var(--color-accent-rgb), 0.1)' : 'var(--color-bg-secondary)',
-                  color: r.userReacted ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                <span>{r.emoji}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700 }}>{r.count}</span>
-              </motion.button>
-            ))}
+          <div className="flex flex-wrap gap-1 mt-1">
+            {reactions.map((r, i) => {
+              const hasReacted = r.users && r.users.includes(currentUserId);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onReaction?.(id, r.emoji)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border transition-transform hover:scale-105 cursor-pointer ${
+                    hasReacted
+                      ? 'bg-[var(--accent-subtle)] border-[var(--accent)] text-[var(--accent)]'
+                      : 'bg-[var(--bg-secondary)] border-[var(--border)] text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span>{r.emoji}</span>
+                  <span className="text-[10px] font-bold">{r.count}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
-
-      {/* Own user avatar */}
-      {isOwn && (
-        <div style={{ flexShrink: 0, width: '32px', marginBottom: '2px', visibility: isLastInGroup ? 'visible' : 'hidden' }}>
-          <Avatar name={user?.name || senderName} src={displayAvatar} size="sm" />
-        </div>
-      )}
-    </motion.div>
+    </div>
   );
 };
-
-const ActionBtn = ({ children, onClick, title, danger }) => (
-  <motion.button
-    onClick={onClick}
-    whileTap={{ scale: 0.85 }}
-    title={title}
-    style={{
-      padding: '5px',
-      borderRadius: '7px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      color: danger ? '#ef4444' : 'var(--color-text-secondary)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'background-color 120ms ease, color 120ms ease',
-    }}
-    className={danger ? 'hover:bg-red-50' : 'hover:bg-[var(--color-bg-hover)]'}
-  >
-    {children}
-  </motion.button>
-);
 
 export default MessageBubble;
