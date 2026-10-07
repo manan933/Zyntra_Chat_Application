@@ -53,15 +53,15 @@ const TopBar = ({ breadcrumbPath, onNavigateBreadcrumb, title, onBackClick }) =>
 
       <div className="flex items-center gap-1.5 shrink-0">
         <button
-          onClick={() => alert('Search across workspace active')}
+          onClick={() => {}}
           style={{ color: 'var(--color-text-secondary)' }}
           className="p-1.5 rounded-lg hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer"
-          title="Search"
+          title="Search workspace"
         >
           <Search size={16} />
         </button>
         <button
-          onClick={() => alert('Notifications (2 new notifications)')}
+          onClick={() => {}}
           style={{ color: 'var(--color-text-secondary)' }}
           className="p-1.5 rounded-lg hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer relative"
           title="Notifications"
