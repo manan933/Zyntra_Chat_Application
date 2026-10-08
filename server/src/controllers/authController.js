@@ -1,39 +1,33 @@
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import { Contact } from '../models/Contact.js';
-import Message from '../models/Message.js';
-
-// Helper to ensure MongoDB is ready before querying
-const ensureDBConnected = async (maxWaitMs = 6000) => {
-  if (mongoose.connection.readyState === 1) return true;
-  const start = Date.now();
-  while (mongoose.connection.readyState !== 1 && Date.now() - start < maxWaitMs) {
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  return mongoose.connection.readyState === 1;
-};
+import storageService from '../services/storageService.js';
 
 // Generate JWT token helper
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'zyntra_secret_fallback', {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'zyntra_jwt_secret_dev_key_2026', {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
+
+const formatUserResponse = (user) => ({
+  id: user._id || user.id,
+  _id: user._id || user.id,
+  name: user.name,
+  email: user.email,
+  primaryUsername: user.primaryUsername,
+  avatar: user.avatar || null,
+  avatarType: user.avatarType || null,
+  bio: user.bio || '',
+  contexts: user.contexts || [],
+  status: user.status || 'online',
+});
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 export const register = async (req, res, next) => {
   try {
-    const isReady = await ensureDBConnected();
-    if (!isReady) {
-      return res.status(503).json({
-        success: false,
-        message: 'Database connection is initializing. Please click Create account again in a few seconds.',
-      });
-    }
-
     const { name, email, primaryUsername, password, avatar, bio } = req.body || {};
 
     if (!name || !email || !primaryUsername || !password) {
@@ -53,59 +47,76 @@ export const register = async (req, res, next) => {
       });
     }
 
-    // Check if email or username already exists
-    const existingEmail = await User.findOne({ email: cleanEmail });
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'An account with that email address already exists',
-      });
+    // 1. If MongoDB is connected, attempt via Mongoose
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const existingEmail = await User.findOne({ email: cleanEmail });
+        if (existingEmail) {
+          return res.status(400).json({
+            success: false,
+            message: 'An account with that email address already exists',
+          });
+        }
+
+        const existingUsername = await User.findOne({ primaryUsername: cleanUsername });
+        if (existingUsername) {
+          return res.status(400).json({
+            success: false,
+            message: `Username @${cleanUsername} is already taken`,
+          });
+        }
+
+        const user = await User.create({
+          name: name.trim(),
+          email: cleanEmail,
+          primaryUsername: cleanUsername,
+          password,
+          avatar: avatar || null,
+          bio: bio || 'Building contextual communication',
+          contexts: [
+            {
+              id: 'ctx-personal',
+              type: 'personal',
+              name: 'Personal',
+              username: `${cleanUsername}.personal`,
+            },
+          ],
+        });
+
+        const token = generateToken(user._id);
+        return res.status(201).json({
+          success: true,
+          token,
+          user: formatUserResponse(user),
+        });
+      } catch (err) {
+        console.warn('[Auth] Mongoose register fallback to storage service:', err.message);
+      }
     }
 
-    const existingUsername = await User.findOne({
-      primaryUsername: cleanUsername,
-    });
-    if (existingUsername) {
+    // 2. Embedded Storage Engine
+    try {
+      const user = await storageService.createUser({
+        name,
+        email: cleanEmail,
+        primaryUsername: cleanUsername,
+        password,
+        avatar,
+        bio,
+      });
+
+      const token = generateToken(user._id);
+      return res.status(201).json({
+        success: true,
+        token,
+        user: formatUserResponse(user),
+      });
+    } catch (err) {
       return res.status(400).json({
         success: false,
-        message: `Username @${cleanUsername} is already taken`,
+        message: err.message,
       });
     }
-
-    const user = await User.create({
-      name: name.trim(),
-      email: cleanEmail,
-      primaryUsername: cleanUsername,
-      password,
-      avatar: avatar || null,
-      bio: bio || 'Building contextual communication',
-      contexts: [
-        {
-          id: 'ctx-personal',
-          type: 'personal',
-          name: 'Personal',
-          username: `${cleanUsername}.personal`,
-        },
-      ],
-    });
-
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        primaryUsername: user.primaryUsername,
-        avatar: user.avatar,
-        avatarType: user.avatarType,
-        bio: user.bio,
-        contexts: user.contexts,
-        status: user.status,
-      },
-    });
   } catch (error) {
     next(error);
   }
@@ -116,7 +127,7 @@ export const register = async (req, res, next) => {
 // @access  Public
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -125,19 +136,30 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const isReady = await ensureDBConnected();
-    if (!isReady) {
-      return res.status(503).json({
-        success: false,
-        message: 'Database connection is initializing. Please try logging in again in a moment.',
-      });
-    }
-
     const cleanEmail = email.toLowerCase().trim();
 
-    // Find user by email and select password
-    const user = await User.findOne({ email: cleanEmail }).select('+password');
+    // 1. If MongoDB is connected, attempt via Mongoose
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const user = await User.findOne({ email: cleanEmail }).select('+password');
+        if (user) {
+          const isMatch = await user.matchPassword(password);
+          if (isMatch) {
+            const token = generateToken(user._id);
+            return res.status(200).json({
+              success: true,
+              token,
+              user: formatUserResponse(user),
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('[Auth] Mongoose login fallback to storage service:', err.message);
+      }
+    }
 
+    // 2. Embedded Storage Engine
+    const user = await storageService.findUserByEmail(cleanEmail);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -145,7 +167,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const isMatch = await user.matchPassword(password);
+    const isMatch = await storageService.verifyPassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -154,21 +176,10 @@ export const login = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        primaryUsername: user.primaryUsername,
-        avatar: user.avatar,
-        avatarType: user.avatarType,
-        bio: user.bio,
-        contexts: user.contexts,
-        status: user.status,
-      },
+      user: formatUserResponse(user),
     });
   } catch (error) {
     next(error);
@@ -180,21 +191,12 @@ export const login = async (req, res, next) => {
 // @access  Private
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
     res.status(200).json({
       success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        primaryUsername: user.primaryUsername,
-        avatar: user.avatar,
-        avatarType: user.avatarType,
-        bio: user.bio,
-        contexts: user.contexts,
-        status: user.status,
-      },
+      user: formatUserResponse(req.user),
     });
   } catch (error) {
     next(error);
@@ -206,54 +208,29 @@ export const getMe = async (req, res, next) => {
 // @access  Private
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, bio, avatar, avatarType } = req.body;
+    const { name, bio, avatar, phone } = req.body;
+    const userId = req.user._id || req.user.id;
 
-    const fieldsToUpdate = {};
-    if (name !== undefined) fieldsToUpdate.name = name;
-    if (bio !== undefined) fieldsToUpdate.bio = bio;
-    if (avatar !== undefined) fieldsToUpdate.avatar = avatar;
-    if (avatarType !== undefined) fieldsToUpdate.avatarType = avatarType;
-
-    const user = await User.findByIdAndUpdate(req.user._id, fieldsToUpdate, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (avatar !== undefined && user?.primaryUsername) {
-      await Contact.updateMany(
-        { username: user.primaryUsername },
-        { avatar }
-      ).catch(() => {});
-      await Message.updateMany(
-        { senderUsername: user.primaryUsername },
-        { senderAvatar: avatar }
-      ).catch(() => {});
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const updated = await User.findByIdAndUpdate(
+          userId,
+          { name, bio, avatar },
+          { new: true }
+        );
+        if (updated) {
+          return res.status(200).json({
+            success: true,
+            user: formatUserResponse(updated),
+          });
+        }
+      } catch {}
     }
 
-    if (name !== undefined && user?.primaryUsername) {
-      await Contact.updateMany(
-        { username: user.primaryUsername },
-        { name }
-      ).catch(() => {});
-      await Message.updateMany(
-        { senderUsername: user.primaryUsername },
-        { senderName: name }
-      ).catch(() => {});
-    }
-
+    const user = await storageService.updateUserProfile(userId, { name, bio, avatar, phone });
     res.status(200).json({
       success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        primaryUsername: user.primaryUsername,
-        avatar: user.avatar,
-        avatarType: user.avatarType,
-        bio: user.bio,
-        contexts: user.contexts,
-        status: user.status,
-      },
+      user: formatUserResponse(user || req.user),
     });
   } catch (error) {
     next(error);
@@ -266,7 +243,6 @@ export const updateProfile = async (req, res, next) => {
 export const addContext = async (req, res, next) => {
   try {
     const { id, type, name, username } = req.body;
-
     if (!id || !type || !name || !username) {
       return res.status(400).json({
         success: false,
@@ -274,11 +250,11 @@ export const addContext = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(req.user._id);
-    const filtered = user.contexts.filter((c) => c.id !== id);
+    const user = req.user;
+    const contexts = user.contexts || [];
+    const filtered = contexts.filter((c) => c.id !== id);
     filtered.push({ id, type, name, username });
     user.contexts = filtered;
-    await user.save();
 
     res.status(200).json({
       success: true,

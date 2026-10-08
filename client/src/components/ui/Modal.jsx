@@ -1,7 +1,14 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }) => {
+const SIZE_MAP = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+};
+
+export const Modal = ({ isOpen, onClose, title, children, size = 'md', maxWidth }) => {
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
@@ -13,6 +20,8 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-md' 
 
   if (!isOpen) return null;
 
+  const widthClass = maxWidth || SIZE_MAP[size] || 'max-w-md';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -23,7 +32,7 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-md' 
 
       {/* Modal Card */}
       <div
-        className={`relative w-full ${maxWidth} bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] z-10`}
+        className={`relative w-full ${widthClass} bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] z-10`}
       >
         {/* Header */}
         {title && (

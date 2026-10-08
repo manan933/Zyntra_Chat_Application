@@ -1,0 +1,410 @@
+{
+  "users": [
+    {
+      "_id": "user-1",
+      "name": "Soumya Mohanty",
+      "email": "soumya@zyntra.com",
+      "primaryUsername": "soumya",
+      "password": "$2b$10$D6ZBC1zpLj0sxCZ19jlSOOEaVb0UGHbz6KEtM5y/ugrH2lrUoiuKS",
+      "avatar": null,
+      "bio": "Lead Engineer & Systems Architect · Building contextual communication",
+      "status": "online",
+      "contexts": [
+        {
+          "id": "ctx-personal",
+          "type": "personal",
+          "name": "Personal",
+          "username": "soumya.personal"
+        },
+        {
+          "id": "ctx-giet",
+          "type": "workplace",
+          "name": "GIET University",
+          "username": "soumya.giet"
+        },
+        {
+          "id": "ctx-abc",
+          "type": "workplace",
+          "name": "ABC Technologies",
+          "username": "soumya.backend"
+        }
+      ],
+      "createdAt": "2026-10-08T09:32:20.581Z"
+    },
+    {
+      "_id": "contact-alex",
+      "name": "Alex Morgan",
+      "email": "alex@zyntra.com",
+      "primaryUsername": "alex",
+      "password": "$2b$10$D6ZBC1zpLj0sxCZ19jlSOOEaVb0UGHbz6KEtM5y/ugrH2lrUoiuKS",
+      "avatar": null,
+      "bio": "Fullstack developer & cloud infrastructure engineer",
+      "status": "online",
+      "contexts": [],
+      "createdAt": "2026-10-08T09:32:20.582Z"
+    },
+    {
+      "_id": "contact-sarah",
+      "name": "Sarah Connor",
+      "email": "sarah@zyntra.com",
+      "primaryUsername": "sarah",
+      "password": "$2b$10$D6ZBC1zpLj0sxCZ19jlSOOEaVb0UGHbz6KEtM5y/ugrH2lrUoiuKS",
+      "avatar": null,
+      "bio": "UI/UX Design Systems Lead",
+      "status": "online",
+      "contexts": [],
+      "createdAt": "2026-10-08T09:32:20.582Z"
+    },
+    {
+      "_id": "contact-david",
+      "name": "David Chen",
+      "email": "david@zyntra.com",
+      "primaryUsername": "david",
+      "password": "$2b$10$D6ZBC1zpLj0sxCZ19jlSOOEaVb0UGHbz6KEtM5y/ugrH2lrUoiuKS",
+      "avatar": null,
+      "bio": "Distributed Systems & Security Engineer",
+      "status": "offline",
+      "contexts": [],
+      "createdAt": "2026-10-08T09:32:20.582Z"
+    },
+    {
+      "_id": "contact-maya",
+      "name": "Maya Lin",
+      "email": "maya@zyntra.com",
+      "primaryUsername": "maya",
+      "password": "$2b$10$D6ZBC1zpLj0sxCZ19jlSOOEaVb0UGHbz6KEtM5y/ugrH2lrUoiuKS",
+      "avatar": null,
+      "bio": "Product Strategist & Community Architect",
+      "status": "online",
+      "contexts": [],
+      "createdAt": "2026-10-08T09:32:20.582Z"
+    }
+  ],
+  "contacts": [
+    {
+      "id": "contact-alex",
+      "userId": "contact-alex",
+      "name": "Alex Morgan",
+      "username": "alex",
+      "status": "online",
+      "lastMessage": "Awesome! Testing it right now and it feels super fast.",
+      "lastMessageTime": "2026-10-08T09:27:20.582Z"
+    },
+    {
+      "id": "contact-sarah",
+      "userId": "contact-sarah",
+      "name": "Sarah Connor",
+      "username": "sarah",
+      "status": "online",
+      "lastMessage": "The new responsive design looks fantastic on mobile.",
+      "lastMessageTime": "2026-10-08T08:57:20.582Z"
+    },
+    {
+      "id": "contact-david",
+      "userId": "contact-david",
+      "name": "David Chen",
+      "username": "david",
+      "status": "offline",
+      "lastMessage": "Merged the pull request 👍",
+      "lastMessageTime": "2026-10-08T06:32:20.582Z"
+    },
+    {
+      "id": "contact-maya",
+      "userId": "contact-maya",
+      "name": "Maya Lin",
+      "username": "maya",
+      "status": "online",
+      "lastMessage": "Let me know when you have time for a quick sync.",
+      "lastMessageTime": "2026-10-07T09:32:20.582Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-engineering",
+      "name": "Engineering Core",
+      "membersCount": 12,
+      "lastMessage": "All unit and integration tests passing.",
+      "lastMessageTime": "2026-10-08T09:22:20.582Z"
+    },
+    {
+      "id": "group-design",
+      "name": "Product & Design",
+      "membersCount": 8,
+      "lastMessage": "Reviewed the typography scale and tokens.",
+      "lastMessageTime": "2026-10-08T07:32:20.582Z"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "ws-giet",
+      "name": "GIET University",
+      "joinCode": "ZYN-GIET-0001",
+      "membersCount": 5200,
+      "isOwner": true,
+      "role": "owner",
+      "nodes": [
+        {
+          "id": "giet-announcements",
+          "name": "official-announcements",
+          "membersCount": 5200,
+          "folder": null,
+          "isAnnouncement": true
+        },
+        {
+          "id": "giet-cse-general",
+          "name": "cse-general",
+          "membersCount": 1450,
+          "folder": "Computer Science & Eng"
+        },
+        {
+          "id": "giet-cse-aiml-research",
+          "name": "aiml-research",
+          "membersCount": 420,
+          "folder": "Computer Science / AI & ML"
+        },
+        {
+          "id": "giet-cse-aiml-sec-a",
+          "name": "section-a-3rd-year",
+          "membersCount": 65,
+          "folder": "Computer Science / AI & ML"
+        },
+        {
+          "id": "giet-cse-aiml-sec-b",
+          "name": "section-b-3rd-year",
+          "membersCount": 62,
+          "folder": "Computer Science / AI & ML"
+        },
+        {
+          "id": "giet-cse-ds",
+          "name": "data-science-projects",
+          "membersCount": 380,
+          "folder": "Computer Science & Eng"
+        },
+        {
+          "id": "giet-placement-2025",
+          "name": "campus-drives-2025",
+          "membersCount": 3200,
+          "folder": "Placement & Careers",
+          "isAnnouncement": true
+        }
+      ]
+    },
+    {
+      "id": "ws-abc",
+      "name": "ABC Technologies",
+      "joinCode": "WS-ABC-900",
+      "membersCount": 1200,
+      "isOwner": false,
+      "role": "member",
+      "nodes": [
+        {
+          "id": "abc-announcements",
+          "name": "announcements",
+          "membersCount": 1200,
+          "folder": null,
+          "isAnnouncement": true
+        },
+        {
+          "id": "abc-frontend-react",
+          "name": "frontend-react",
+          "membersCount": 85,
+          "folder": "Engineering"
+        },
+        {
+          "id": "abc-backend-go",
+          "name": "backend-go",
+          "membersCount": 92,
+          "folder": "Engineering"
+        },
+        {
+          "id": "abc-design-system",
+          "name": "design-system",
+          "membersCount": 64,
+          "folder": "Product & Design"
+        }
+      ]
+    },
+    {
+      "id": "ws-zyntra",
+      "name": "Zyntra Technologies",
+      "joinCode": "WS-ZYNTRA-01",
+      "membersCount": 45,
+      "isOwner": true,
+      "role": "owner",
+      "nodes": [
+        {
+          "id": "node-general",
+          "name": "general",
+          "membersCount": 45,
+          "folder": null
+        },
+        {
+          "id": "node-dev",
+          "name": "dev-chat",
+          "membersCount": 28,
+          "folder": "Engineering"
+        },
+        {
+          "id": "node-announcements",
+          "name": "announcements",
+          "membersCount": 45,
+          "folder": null,
+          "isAnnouncement": true
+        }
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-alex-1",
+      "chatId": "contact-alex",
+      "senderId": "contact-alex",
+      "senderName": "Alex Morgan",
+      "senderUsername": "alex",
+      "content": "Hey! Are we deploying the new build today?",
+      "timestamp": "2026-10-08T09:17:20.582Z",
+      "reactions": [
+        {
+          "emoji": "🚀",
+          "count": 1,
+          "users": [
+            "user-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-alex-2",
+      "chatId": "contact-alex",
+      "senderId": "user-1",
+      "senderName": "Soumya Mohanty",
+      "senderUsername": "soumya",
+      "content": "Yes! The new frontend is completely rebuilt — clean, lightweight, and adaptable across all mobile and desktop screens.",
+      "timestamp": "2026-10-08T09:22:20.582Z",
+      "reactions": [
+        {
+          "emoji": "🔥",
+          "count": 2,
+          "users": [
+            "contact-alex",
+            "user-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-alex-3",
+      "chatId": "contact-alex",
+      "senderId": "contact-alex",
+      "senderName": "Alex Morgan",
+      "senderUsername": "alex",
+      "content": "Awesome! Testing it right now and it feels super fast.",
+      "timestamp": "2026-10-08T09:27:20.582Z",
+      "reactions": [
+        {
+          "emoji": "👍",
+          "count": 1,
+          "users": [
+            "user-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-giet-1",
+      "chatId": "giet-announcements",
+      "senderId": "user-1",
+      "senderName": "Soumya Mohanty",
+      "senderUsername": "soumya",
+      "content": "📢 Welcome to the GIET University official communications channel. Mid-term examination schedule and lab rosters have been posted to the portal.",
+      "timestamp": "2026-10-08T06:32:20.582Z",
+      "reactions": [
+        {
+          "emoji": "📌",
+          "count": 18,
+          "users": [
+            "user-1"
+          ]
+        },
+        {
+          "emoji": "👍",
+          "count": 42,
+          "users": []
+        }
+      ]
+    },
+    {
+      "id": "msg-aiml-1",
+      "chatId": "giet-cse-aiml-sec-a",
+      "senderId": "contact-sarah",
+      "senderName": "Sarah Connor",
+      "senderUsername": "sarah",
+      "content": "Hey team, did everyone complete the Deep Learning lab assignment on Convolutional Neural Networks?",
+      "timestamp": "2026-10-08T08:47:20.582Z",
+      "reactions": [
+        {
+          "emoji": "🧠",
+          "count": 6,
+          "users": [
+            "user-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-aiml-2",
+      "chatId": "giet-cse-aiml-sec-a",
+      "senderId": "user-1",
+      "senderName": "Soumya Mohanty",
+      "senderUsername": "soumya",
+      "content": "Yes, repo is pushed to GitHub with model checkpoints and confusion matrix plots!",
+      "timestamp": "2026-10-08T09:07:20.582Z",
+      "reactions": [
+        {
+          "emoji": "🔥",
+          "count": 5,
+          "users": [
+            "contact-sarah"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-abc-1",
+      "chatId": "abc-frontend-react",
+      "senderId": "contact-david",
+      "senderName": "David Chen",
+      "senderUsername": "david",
+      "content": "React 19 concurrent features and Vite 8 builds are performing remarkably well. Bundle footprint is down by 58%.",
+      "timestamp": "2026-10-08T07:32:20.582Z",
+      "reactions": [
+        {
+          "emoji": "⚡",
+          "count": 7,
+          "users": [
+            "user-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "msg-ws-1",
+      "chatId": "node-general",
+      "senderId": "contact-sarah",
+      "senderName": "Sarah Connor",
+      "senderUsername": "sarah",
+      "content": "Welcome everyone to the #general channel in Zyntra Technologies!",
+      "timestamp": "2026-10-08T08:32:20.582Z",
+      "reactions": [
+        {
+          "emoji": "🎉",
+          "count": 4,
+          "users": [
+            "user-1",
+            "contact-alex"
+          ]
+        }
+      ]
+    }
+  ]
+}

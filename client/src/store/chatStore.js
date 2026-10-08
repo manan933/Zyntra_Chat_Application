@@ -60,13 +60,50 @@ const INITIAL_GROUPS = [
 
 const INITIAL_WORKSPACES = [
   {
+    id: 'ws-giet',
+    name: 'GIET University',
+    joinCode: 'ZYN-GIET-0001',
+    membersCount: 5200,
+    isOwner: true,
+    role: 'owner',
+    description: 'Official university communications & academic department channels',
+    nodes: [
+      { id: 'giet-announcements', name: 'official-announcements', membersCount: 5200, folder: null, isAnnouncement: true },
+      { id: 'giet-cse-general', name: 'cse-general', membersCount: 1450, folder: 'Computer Science & Eng' },
+      { id: 'giet-cse-aiml-research', name: 'aiml-research', membersCount: 420, folder: 'Computer Science / AI & ML' },
+      { id: 'giet-cse-aiml-sec-a', name: 'section-a-3rd-year', membersCount: 65, folder: 'Computer Science / AI & ML' },
+      { id: 'giet-cse-aiml-sec-b', name: 'section-b-3rd-year', membersCount: 62, folder: 'Computer Science / AI & ML' },
+      { id: 'giet-cse-ds', name: 'data-science-projects', membersCount: 380, folder: 'Computer Science & Eng' },
+      { id: 'giet-placement-2025', name: 'campus-drives-2025', membersCount: 3200, folder: 'Placement & Careers', isAnnouncement: true },
+    ],
+  },
+  {
+    id: 'ws-abc',
+    name: 'ABC Technologies',
+    joinCode: 'WS-ABC-900',
+    membersCount: 1200,
+    isOwner: false,
+    role: 'member',
+    description: 'Enterprise product engineering & architecture hub',
+    nodes: [
+      { id: 'abc-announcements', name: 'announcements', membersCount: 1200, folder: null, isAnnouncement: true },
+      { id: 'abc-frontend-react', name: 'frontend-react', membersCount: 85, folder: 'Engineering' },
+      { id: 'abc-backend-go', name: 'backend-go', membersCount: 92, folder: 'Engineering' },
+      { id: 'abc-design-system', name: 'design-system', membersCount: 64, folder: 'Product & Design' },
+    ],
+  },
+  {
     id: 'ws-zyntra',
     name: 'Zyntra Technologies',
+    joinCode: 'WS-ZYNTRA-01',
     membersCount: 45,
+    isOwner: true,
+    role: 'owner',
+    description: 'Core platform engineering, protocol design and E2EE security',
     nodes: [
-      { id: 'node-general', name: 'general', membersCount: 45 },
-      { id: 'node-dev', name: 'dev-chat', membersCount: 28 },
-      { id: 'node-announcements', name: 'announcements', membersCount: 45 },
+      { id: 'node-general', name: 'general', membersCount: 45, folder: null },
+      { id: 'node-dev', name: 'dev-chat', membersCount: 28, folder: 'Engineering' },
+      { id: 'node-announcements', name: 'announcements', membersCount: 45, folder: null, isAnnouncement: true },
     ],
   },
 ];
@@ -102,6 +139,52 @@ const INITIAL_MESSAGES = {
       content: 'Awesome! Testing it right now and it feels super fast.',
       timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       reactions: [{ emoji: '👍', count: 1, users: ['user-1'] }],
+    },
+  ],
+  'giet-announcements': [
+    {
+      id: 'msg-giet-1',
+      chatId: 'giet-announcements',
+      senderId: 'user-1',
+      senderName: 'Soumya Mohanty',
+      senderUsername: 'soumya',
+      content: '📢 Welcome to the GIET University official communications channel. Mid-term examination schedule and lab rosters have been posted to the portal.',
+      timestamp: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+      reactions: [{ emoji: '📌', count: 18, users: ['user-1'] }, { emoji: '👍', count: 42, users: [] }],
+    },
+  ],
+  'giet-cse-aiml-sec-a': [
+    {
+      id: 'msg-aiml-1',
+      chatId: 'giet-cse-aiml-sec-a',
+      senderId: 'contact-sarah',
+      senderName: 'Sarah Connor',
+      senderUsername: 'sarah',
+      content: 'Hey team, did everyone complete the Deep Learning lab assignment on Convolutional Neural Networks?',
+      timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+      reactions: [{ emoji: '🧠', count: 6, users: ['user-1'] }],
+    },
+    {
+      id: 'msg-aiml-2',
+      chatId: 'giet-cse-aiml-sec-a',
+      senderId: 'user-1',
+      senderName: 'Soumya Mohanty',
+      senderUsername: 'soumya',
+      content: 'Yes, repo is pushed to GitHub with model checkpoints and confusion matrix plots!',
+      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+      reactions: [{ emoji: '🔥', count: 5, users: ['contact-sarah'] }],
+    },
+  ],
+  'abc-frontend-react': [
+    {
+      id: 'msg-abc-1',
+      chatId: 'abc-frontend-react',
+      senderId: 'contact-david',
+      senderName: 'David Chen',
+      senderUsername: 'david',
+      content: 'React 19 concurrent features and Vite 8 builds are performing remarkably well. Bundle footprint is down by 58%.',
+      timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+      reactions: [{ emoji: '⚡', count: 7, users: ['user-1'] }],
     },
   ],
   'node-general': [
@@ -470,6 +553,7 @@ export const useChatStore = create((set, get) => ({
       id: `ws-${Date.now()}`,
       name: `Workspace (${code})`,
       membersCount: 5,
+      joinCode: code,
       nodes: [
         { id: `node-${Date.now()}-gen`, name: 'general', membersCount: 5 },
       ],
@@ -478,6 +562,32 @@ export const useChatStore = create((set, get) => ({
       workspaces: [joinedWs, ...state.workspaces],
     }));
     return { success: true, workspace: joinedWs };
+  },
+
+  addChannelToWorkspace: (workspaceId, channelName, folder = null) => {
+    const cleanName = channelName.replace(/^#/, '').trim().toLowerCase();
+    const newChannel = {
+      id: `node-${Date.now()}-${cleanName}`,
+      name: cleanName,
+      membersCount: 1,
+      folder: folder || null,
+    };
+
+    set((state) => ({
+      workspaces: state.workspaces.map((ws) =>
+        ws.id === workspaceId
+          ? { ...ws, nodes: [...(ws.nodes || []), newChannel] }
+          : ws
+      ),
+    }));
+
+    return newChannel;
+  },
+
+  leaveWorkspace: (workspaceId) => {
+    set((state) => ({
+      workspaces: state.workspaces.filter((ws) => ws.id !== workspaceId),
+    }));
   },
 
   setTyping: (roomId, userName, isTyping) => {

@@ -30,6 +30,8 @@ export const ChatPage = () => {
     createGroup,
     createWorkspace,
     joinWorkspace,
+    addChannelToWorkspace,
+    leaveWorkspace,
     setTyping,
   } = useChatStore();
 
@@ -74,13 +76,8 @@ export const ChatPage = () => {
         }}
       >
         {/* ── Sidebar ──────────────────────────────────────────────── */}
-        {/*
-          Mobile  (< 768px): show sidebar OR chat area, not both
-          Desktop (≥ 768px): always show sidebar at fixed width
-        */}
         <div
           style={{
-            /* Mobile: hide sidebar when a chat is open */
             display: activeChat ? 'none' : 'flex',
             flexDirection: 'column',
             width: '100%',
@@ -88,7 +85,6 @@ export const ChatPage = () => {
             height: '100%',
             overflow: 'hidden',
           }}
-          // On md+ screens Tailwind overrides: show always, fixed width
           className="md:!flex md:!w-[320px] lg:!w-[340px]"
         >
           <Sidebar
@@ -102,14 +98,11 @@ export const ChatPage = () => {
             onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
             onOpenSettings={() => setSettingsModalOpen(true)}
             onLogout={logout}
+            onAddChannel={addChannelToWorkspace}
           />
         </div>
 
         {/* ── Chat Area ────────────────────────────────────────────── */}
-        {/*
-          Mobile: show chat area only when chat is active
-          Desktop: always show, fills remaining space
-        */}
         <div
           style={{
             display: !activeChat ? 'none' : 'flex',
@@ -140,6 +133,9 @@ export const ChatPage = () => {
             onReaction={(msgId, emoji) =>
               activeChat && addReaction(activeChat.id, msgId, emoji, user?.id || user?._id)
             }
+            onLeaveChat={(chatId) => {
+              closeChat();
+            }}
           />
         </div>
       </div>
@@ -165,6 +161,7 @@ export const ChatPage = () => {
         onClose={() => setSettingsModalOpen(false)}
         user={user}
         onUpdateProfile={updateProfile}
+        onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
       />
     </>
   );

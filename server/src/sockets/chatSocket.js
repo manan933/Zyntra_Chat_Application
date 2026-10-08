@@ -1,5 +1,6 @@
+import mongoose from 'mongoose';
 import Message from '../models/Message.js';
-import { Contact } from '../models/Contact.js';
+import storageService from '../services/storageService.js';
 
 export const setupChatSocket = (io) => {
   io.on('connection', (socket) => {
@@ -39,12 +40,29 @@ export const setupChatSocket = (io) => {
 
         const messageId = id || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
         const finalContent = content ? content.trim() : '';
-        const previewText = finalContent || (attachment?.type === 'image' ? '📷 Photo' : `📎 ${attachment?.name || 'Attachment'}`);
 
-        // Check if message with this ID already exists
-        let message = await Message.findOne({ id: messageId });
-        if (!message) {
-          message = await Message.create({
+        // 1. Instant persistence in embedded storage engine (0 latency)
+        const savedMessage = await storageService.saveMessage({
+          id: messageId,
+          chatId,
+          chatType: chatType || 'workspace-node',
+          senderId: senderId || 'user-1',
+          senderName: senderName || 'Soumya',
+          senderUsername: senderUsername || 'soumya',
+          senderAvatar: senderAvatar || null,
+          content: finalContent,
+          type: attachment?.type || 'text',
+          attachment: attachment || null,
+          reactions: [],
+          timestamp: timestamp || new Date().toISOString(),
+        });
+
+        // 2. Broadcast immediately to peers in the room
+        socket.to(chatId).emit('receive_message', savedMessage);
+
+        // 3. Optional async sync to MongoDB if connected
+        if (mongoose.connection.readyState === 1) {
+          Message.create({
             id: messageId,
             chatId,
             chatType: chatType || 'workspace-node',
@@ -57,72 +75,58 @@ export const setupChatSocket = (io) => {
             attachment: attachment || null,
             reactions: [],
             timestamp: timestamp ? new Date(timestamp) : new Date(),
-          });
+          }).catch(() => {});
         }
-
-        // Update contacts lastMessage so sidebar updates on both sides
-        await Contact.updateMany(
-          { id: chatId },
-          { lastMessage: previewText, lastMessageTime: new Date() }
-        ).catch(() => {});
-
-        // Broadcast to peers in the room (sender already has optimistic copy)
-        const payload = message.toObject ? message.toObject() : message;
-        socket.to(chatId).emit('receive_message', payload);
       } catch (err) {
         console.error('[Socket.io] Error sending message:', err.message);
-        socket.emit('error_message', { message: 'Failed to send message via socket' });
       }
     });
 
     // Handle typing status
     socket.on('typing_start', ({ roomId, userName, userId }) => {
+      if (!roomId) return;
       socket.to(roomId).emit('user_typing', { userId, userName, isTyping: true });
     });
 
     socket.on('typing_stop', ({ roomId, userId }) => {
+      if (!roomId) return;
       socket.to(roomId).emit('user_typing', { userId, isTyping: false });
     });
 
     // Handle real-time reactions
     socket.on('send_reaction', async ({ messageId, emoji, userId, chatId }) => {
       try {
-        const message = await Message.findOne({ id: messageId });
-        if (!message) return;
-
         const uid = userId || 'user-1';
-        const existing = message.reactions.find((r) => r.emoji === emoji);
+        const updated = await storageService.addReaction(messageId, emoji, uid);
 
-        if (existing) {
-          if (!existing.users.includes(uid)) {
-            existing.users.push(uid);
-          }
-          existing.count = existing.users.length;
-        } else {
-          message.reactions.push({
-            emoji,
-            count: 1,
-            users: [uid],
-          });
+        if (chatId && updated) {
+          io.to(chatId).emit('update_reaction', updated);
         }
 
-        await message.save();
-        io.to(chatId || message.chatId).emit('update_reaction', message);
+        // Optional async sync to MongoDB
+        if (mongoose.connection.readyState === 1) {
+          Message.findOne({ id: messageId }).then((msg) => {
+            if (msg) {
+              const existing = msg.reactions.find((r) => r.emoji === emoji);
+              if (existing) {
+                if (!existing.users.includes(uid)) existing.users.push(uid);
+                existing.count = existing.users.length;
+              } else {
+                msg.reactions.push({ emoji, count: 1, users: [uid] });
+              }
+              msg.save().catch(() => {});
+            }
+          }).catch(() => {});
+        }
       } catch (err) {
-        console.error('[Socket.io] Error updating reaction:', err.message);
+        console.error('[Socket.io] Error in reaction handler:', err.message);
       }
     });
 
-    // Handle real-time avatar updates
-    socket.on('update_avatar', ({ username, avatar }) => {
-      if (username) {
-        io.emit('user_avatar_updated', { username, avatar });
-      }
-    });
-
-    // Disconnect
     socket.on('disconnect', () => {
       console.log(`[Socket.io] Client disconnected: ${socket.id}`);
     });
   });
 };
+
+export default setupChatSocket;
