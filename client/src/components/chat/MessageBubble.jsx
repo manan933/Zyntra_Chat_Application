@@ -68,11 +68,18 @@ export const MessageBubble = ({
           isOwn ? 'items-end' : 'items-start'
         }`}
       >
-        {/* Sender Name in group contexts */}
-        {!isOwn && senderName && (
-          <span className="text-[11px] font-bold text-[var(--accent)] px-2 mb-0.5 select-none">
-            {senderName}
-          </span>
+        {/* Sender Name and ID in group contexts */}
+        {!isOwn && (senderName || message.senderUsername) && (
+          <div className="flex items-center gap-1.5 px-2 mb-0.5 select-none max-w-full">
+            <span className="text-[11px] font-bold text-[var(--accent)] truncate">
+              {senderName}
+            </span>
+            {message.senderUsername && (
+              <span className="text-[9px] font-mono text-[var(--text-muted)] bg-[var(--bg-secondary)] px-1 py-0.5 rounded border border-[var(--border)] shrink-0" title="Sender Context ID">
+                @{message.senderUsername}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Floating Quick Action Toolbar */}

@@ -99,7 +99,7 @@ const INITIAL_WORKSPACES = [
     membersCount: 45,
     isOwner: true,
     role: 'owner',
-    description: 'Core platform engineering, protocol design and E2EE security',
+    description: 'Core platform engineering, protocol design and system security',
     nodes: [
       { id: 'node-general', name: 'general', membersCount: 45, folder: null },
       { id: 'node-dev', name: 'dev-chat', membersCount: 28, folder: 'Engineering' },
@@ -289,11 +289,19 @@ export const useChatStore = create((set, get) => ({
   },
 
   removeChat: (chatId, action = 'leave') => {
-    // Only implemented for groups locally
     set((state) => ({
       groups: state.groups.filter((g) => g.id !== chatId),
+      contacts: state.contacts.filter((c) => c.id !== chatId),
       activeChat: state.activeChat?.id === chatId ? null : state.activeChat
     }));
+  },
+
+  blockUser: (userId) => {
+    set((state) => {
+      const blocked = state.blockedUsers || [];
+      if (blocked.includes(userId)) return state;
+      return { blockedUsers: [...blocked, userId] };
+    });
   },
 
   // Load messages for a chat

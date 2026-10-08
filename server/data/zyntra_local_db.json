@@ -138,6 +138,26 @@
         }
       ],
       "createdAt": "2026-10-08T09:44:50.008Z"
+    },
+    {
+      "_id": "user-1791455520675-drz2",
+      "id": "user-1791455520675-drz2",
+      "name": "Test User",
+      "email": "test1@example.com",
+      "primaryUsername": "testuser123",
+      "password": "$2b$10$gJ8jNHWG2cyueKXXUFBM6.iz0zJ.nSq67iljvrQvYgncANdh0dpJm",
+      "avatar": null,
+      "bio": "Building contextual communication",
+      "status": "online",
+      "contexts": [
+        {
+          "id": "ctx-personal",
+          "type": "personal",
+          "name": "Personal",
+          "username": "testuser123.personal"
+        }
+      ],
+      "createdAt": "2026-10-08T10:32:00.766Z"
     }
   ],
   "contacts": [
@@ -203,6 +223,15 @@
       "status": "online",
       "lastMessage": "Joined Zyntra",
       "lastMessageTime": "2026-10-08T09:44:50.008Z"
+    },
+    {
+      "id": "contact-testuser123",
+      "userId": "user-1791455520675-drz2",
+      "name": "Test User",
+      "username": "testuser123",
+      "status": "online",
+      "lastMessage": "Joined Zyntra",
+      "lastMessageTime": "2026-10-08T10:32:00.766Z"
     }
   ],
   "groups": [

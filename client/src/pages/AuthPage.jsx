@@ -334,7 +334,7 @@ export const AuthPage = () => {
           {/* Security & Privacy Reassurance */}
           <div className="mt-8 pt-4 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] text-center">
             <Lock size={13} className="text-emerald-500 shrink-0" />
-            <span>Encrypted with 256-bit AES · Session tokens securely isolated</span>
+            <span>Secure authentication · Session tokens securely isolated</span>
           </div>
         </div>
       </div>

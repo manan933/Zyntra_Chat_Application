@@ -207,7 +207,7 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
             )}
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'group' ? (
         <form onSubmit={handleCreateGroup} className="flex flex-col gap-3">
           <div>
             <label className="text-[11px] font-bold text-[var(--text-secondary)] block mb-1">

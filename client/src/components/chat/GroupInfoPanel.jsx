@@ -13,8 +13,10 @@ import {
   Bell,
   BellOff,
   Hash,
+  Ban,
 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
+import useChatStore from '../../store/chatStore';
 
 const ROLE_CONFIG = {
   owner: { label: 'Owner', bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.25)' },
@@ -125,48 +127,54 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
           </button>
         </div>
 
-        {/* ── Members / Shared Media Tabs ───────────────────────────── */}
+        {/* ── Members or Mutual Groups ────────────────────────────── */}
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
               <Users size={14} className="text-blue-500" />
-              <span>Participants ({DEFAULT_MEMBERS.length})</span>
+              <span>{isDirect ? 'Mutual Connections' : `Participants (${DEFAULT_MEMBERS.length})`}</span>
             </span>
           </div>
 
           <div className="space-y-1.5">
-            {DEFAULT_MEMBERS.map((m) => {
-              const roleCfg = ROLE_CONFIG[m.role] || ROLE_CONFIG.member;
-              return (
-                <div
-                  key={m.id}
-                  className="p-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={m.name} size="sm" status={m.status} />
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-[var(--text-primary)] truncate">
-                        {m.name}
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)] font-mono truncate">
-                        @{m.username}
+            {isDirect ? (
+              <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] text-center text-[11px] text-[var(--text-secondary)]">
+                You both are members of <strong className="text-[var(--text-primary)]">Zyntra Technologies</strong> and <strong className="text-[var(--text-primary)]">Design Team</strong>.
+              </div>
+            ) : (
+              DEFAULT_MEMBERS.map((m) => {
+                const roleCfg = ROLE_CONFIG[m.role] || ROLE_CONFIG.member;
+                return (
+                  <div
+                    key={m.id}
+                    className="p-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar name={m.name} size="sm" status={m.status} />
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-[var(--text-primary)] truncate">
+                          {m.name}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] font-mono truncate">
+                          @{m.username}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span
-                    className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border shrink-0"
-                    style={{
-                      backgroundColor: roleCfg.bg,
-                      color: roleCfg.text,
-                      borderColor: roleCfg.border,
-                    }}
-                  >
-                    {roleCfg.label}
-                  </span>
-                </div>
-              );
-            })}
+                    <span
+                      className="px-1.5 py-0.5 rounded-md text-[9px] font-bold border shrink-0"
+                      style={{
+                        backgroundColor: roleCfg.bg,
+                        color: roleCfg.text,
+                        borderColor: roleCfg.border,
+                      }}
+                    >
+                      {roleCfg.label}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -187,7 +195,7 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
           </div>
         </div>
 
-        {/* ── Leave / Delete Action (if group or channel) ────────────────────── */}
+        {/* ── Leave / Delete / Block Action ────────────────────── */}
         {(isChannel || chat.type === 'group') && (
           <div className="grid grid-cols-2 gap-2 mt-2">
             <button
@@ -218,6 +226,23 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
               <span>Delete</span>
             </button>
           </div>
+        )}
+
+        {isDirect && (
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm(`Block ${chat.name}? They will not be able to send you messages.`)) {
+                useChatStore.getState().blockUser(chat.id);
+                onLeaveChat?.(chat.id, 'delete'); // Automatically close and delete chat locally
+                onClose();
+              }
+            }}
+            className="w-full mt-2 py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Ban size={14} />
+            <span>Block User</span>
+          </button>
         )}
       </div>
     </aside>
