@@ -29,8 +29,8 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
       try {
         const cleanQuery = search.replace(/^@/, '').trim();
         const res = await api.contacts.search(cleanQuery);
-        if (res.ok && Array.isArray(res.data)) {
-          setSearchResults(res.data);
+        if (res.ok) {
+          setSearchResults(Array.isArray(res.data) ? res.data : (res.data.users || []));
         } else {
           setSearchResults([]);
         }
