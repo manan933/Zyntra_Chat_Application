@@ -2,211 +2,12 @@ import { create } from 'zustand';
 import api from '../api/api';
 import socketService from '../api/socket';
 
-const INITIAL_CONTACTS = [
-  {
-    id: 'contact-alex',
-    name: 'Alex Morgan',
-    username: 'alex',
-    status: 'online',
-    lastMessage: 'Hey! Are we deploying the new build today?',
-    lastMessageTime: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    avatar: null,
-  },
-  {
-    id: 'contact-sarah',
-    name: 'Sarah Connor',
-    username: 'sarah',
-    status: 'online',
-    lastMessage: 'The new responsive design looks fantastic on mobile.',
-    lastMessageTime: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    avatar: null,
-  },
-  {
-    id: 'contact-david',
-    name: 'David Chen',
-    username: 'david',
-    status: 'offline',
-    lastMessage: 'Merged the pull request 👍',
-    lastMessageTime: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-    avatar: null,
-  },
-  {
-    id: 'contact-maya',
-    name: 'Maya Lin',
-    username: 'maya',
-    status: 'online',
-    lastMessage: 'Let me know when you have time for a quick sync.',
-    lastMessageTime: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    avatar: null,
-  },
-];
-
-const INITIAL_GROUPS = [
-  {
-    id: 'group-engineering',
-    name: 'Engineering Core',
-    membersCount: 12,
-    lastMessage: 'All unit and integration tests passing.',
-    lastMessageTime: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'group-design',
-    name: 'Product & Design',
-    membersCount: 8,
-    lastMessage: 'Reviewed the typography scale and tokens.',
-    lastMessageTime: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-  },
-];
-
-const INITIAL_WORKSPACES = [
-  {
-    id: 'ws-giet',
-    name: 'GIET University',
-    joinCode: 'ZYN-GIET-0001',
-    membersCount: 5200,
-    isOwner: true,
-    role: 'owner',
-    description: 'Official university communications & academic department channels',
-    nodes: [
-      { id: 'giet-announcements', name: 'official-announcements', membersCount: 5200, folder: null, isAnnouncement: true },
-      { id: 'giet-cse-general', name: 'cse-general', membersCount: 1450, folder: 'Computer Science & Eng' },
-      { id: 'giet-cse-aiml-research', name: 'aiml-research', membersCount: 420, folder: 'Computer Science / AI & ML' },
-      { id: 'giet-cse-aiml-sec-a', name: 'section-a-3rd-year', membersCount: 65, folder: 'Computer Science / AI & ML' },
-      { id: 'giet-cse-aiml-sec-b', name: 'section-b-3rd-year', membersCount: 62, folder: 'Computer Science / AI & ML' },
-      { id: 'giet-cse-ds', name: 'data-science-projects', membersCount: 380, folder: 'Computer Science & Eng' },
-      { id: 'giet-placement-2025', name: 'campus-drives-2025', membersCount: 3200, folder: 'Placement & Careers', isAnnouncement: true },
-    ],
-  },
-  {
-    id: 'ws-abc',
-    name: 'ABC Technologies',
-    joinCode: 'WS-ABC-900',
-    membersCount: 1200,
-    isOwner: false,
-    role: 'member',
-    description: 'Enterprise product engineering & architecture hub',
-    nodes: [
-      { id: 'abc-announcements', name: 'announcements', membersCount: 1200, folder: null, isAnnouncement: true },
-      { id: 'abc-frontend-react', name: 'frontend-react', membersCount: 85, folder: 'Engineering' },
-      { id: 'abc-backend-go', name: 'backend-go', membersCount: 92, folder: 'Engineering' },
-      { id: 'abc-design-system', name: 'design-system', membersCount: 64, folder: 'Product & Design' },
-    ],
-  },
-  {
-    id: 'ws-zyntra',
-    name: 'Zyntra Technologies',
-    joinCode: 'WS-ZYNTRA-01',
-    membersCount: 45,
-    isOwner: true,
-    role: 'owner',
-    description: 'Core platform engineering, protocol design and system security',
-    nodes: [
-      { id: 'node-general', name: 'general', membersCount: 45, folder: null },
-      { id: 'node-dev', name: 'dev-chat', membersCount: 28, folder: 'Engineering' },
-      { id: 'node-announcements', name: 'announcements', membersCount: 45, folder: null, isAnnouncement: true },
-    ],
-  },
-];
-
-const INITIAL_MESSAGES = {
-  'contact-alex': [
-    {
-      id: 'msg-alex-1',
-      chatId: 'contact-alex',
-      senderId: 'contact-alex',
-      senderName: 'Alex Morgan',
-      senderUsername: 'alex',
-      content: 'Hey! Are we deploying the new build today?',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '🚀', count: 1, users: ['user-1'] }],
-    },
-    {
-      id: 'msg-alex-2',
-      chatId: 'contact-alex',
-      senderId: 'user-1',
-      senderName: 'Soumya Mohanty',
-      senderUsername: 'soumya',
-      content: 'Yes! The new frontend is completely rebuilt — clean, lightweight, and adaptable across all mobile and desktop screens.',
-      timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '🔥', count: 2, users: ['contact-alex', 'user-1'] }],
-    },
-    {
-      id: 'msg-alex-3',
-      chatId: 'contact-alex',
-      senderId: 'contact-alex',
-      senderName: 'Alex Morgan',
-      senderUsername: 'alex',
-      content: 'Awesome! Testing it right now and it feels super fast.',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '👍', count: 1, users: ['user-1'] }],
-    },
-  ],
-  'giet-announcements': [
-    {
-      id: 'msg-giet-1',
-      chatId: 'giet-announcements',
-      senderId: 'user-1',
-      senderName: 'Soumya Mohanty',
-      senderUsername: 'soumya',
-      content: '📢 Welcome to the GIET University official communications channel. Mid-term examination schedule and lab rosters have been posted to the portal.',
-      timestamp: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-      reactions: [{ emoji: '📌', count: 18, users: ['user-1'] }, { emoji: '👍', count: 42, users: [] }],
-    },
-  ],
-  'giet-cse-aiml-sec-a': [
-    {
-      id: 'msg-aiml-1',
-      chatId: 'giet-cse-aiml-sec-a',
-      senderId: 'contact-sarah',
-      senderName: 'Sarah Connor',
-      senderUsername: 'sarah',
-      content: 'Hey team, did everyone complete the Deep Learning lab assignment on Convolutional Neural Networks?',
-      timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '🧠', count: 6, users: ['user-1'] }],
-    },
-    {
-      id: 'msg-aiml-2',
-      chatId: 'giet-cse-aiml-sec-a',
-      senderId: 'user-1',
-      senderName: 'Soumya Mohanty',
-      senderUsername: 'soumya',
-      content: 'Yes, repo is pushed to GitHub with model checkpoints and confusion matrix plots!',
-      timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '🔥', count: 5, users: ['contact-sarah'] }],
-    },
-  ],
-  'abc-frontend-react': [
-    {
-      id: 'msg-abc-1',
-      chatId: 'abc-frontend-react',
-      senderId: 'contact-david',
-      senderName: 'David Chen',
-      senderUsername: 'david',
-      content: 'React 19 concurrent features and Vite 8 builds are performing remarkably well. Bundle footprint is down by 58%.',
-      timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-      reactions: [{ emoji: '⚡', count: 7, users: ['user-1'] }],
-    },
-  ],
-  'node-general': [
-    {
-      id: 'msg-ws-1',
-      chatId: 'node-general',
-      senderId: 'contact-sarah',
-      senderName: 'Sarah Connor',
-      senderUsername: 'sarah',
-      content: 'Welcome everyone to the #general channel in Zyntra Technologies!',
-      timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-      reactions: [{ emoji: '🎉', count: 4, users: ['user-1', 'contact-alex'] }],
-    },
-  ],
-};
-
 export const useChatStore = create((set, get) => ({
   activeChat: null,
-  contacts: INITIAL_CONTACTS,
-  groups: INITIAL_GROUPS,
-  workspaces: INITIAL_WORKSPACES,
-  messages: INITIAL_MESSAGES,
+  contacts: [],
+  groups: [],
+  workspaces: [],
+  messages: {},
   typingStatus: {},
   isLoadingChats: false,
   isLoadingMessages: false,
@@ -214,10 +15,10 @@ export const useChatStore = create((set, get) => ({
   // Reset store for logout
   resetStore: () => set({
     activeChat: null,
-    contacts: INITIAL_CONTACTS,
-    groups: INITIAL_GROUPS,
-    workspaces: INITIAL_WORKSPACES,
-    messages: INITIAL_MESSAGES,
+    contacts: [],
+    groups: [],
+    workspaces: [],
+    messages: {},
     typingStatus: {},
   }),
 
@@ -233,10 +34,10 @@ export const useChatStore = create((set, get) => ({
       const contactsData = contactsRes.ok && contactsRes.data ? contactsRes.data : {};
       const rawContacts = contactsData.contacts && contactsData.contacts.length > 0
         ? contactsData.contacts
-        : INITIAL_CONTACTS;
+        : [];
       const rawGroups = contactsData.groups && contactsData.groups.length > 0
         ? contactsData.groups
-        : INITIAL_GROUPS;
+        : [];
 
       const rawWorkspaces =
         workspacesRes.ok && workspacesRes.data
@@ -244,8 +45,8 @@ export const useChatStore = create((set, get) => ({
             ? workspacesRes.data
             : workspacesRes.data.workspaces && workspacesRes.data.workspaces.length > 0
             ? workspacesRes.data.workspaces
-            : INITIAL_WORKSPACES
-          : INITIAL_WORKSPACES;
+            : []
+          : [];
 
       set({
         contacts: rawContacts,

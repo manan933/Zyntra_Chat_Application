@@ -9,7 +9,6 @@ import authRoutes from './routes/authRoutes.js';
 import workspaceRoutes from './routes/workspaceRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
-import seedRoutes from './routes/seedRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -63,7 +62,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/contacts', contactRoutes);
-app.use('/api/seed', seedRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Error Handler Middleware

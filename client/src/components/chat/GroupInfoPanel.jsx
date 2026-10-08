@@ -25,14 +25,6 @@ const ROLE_CONFIG = {
   member: { label: 'Member', bg: 'rgba(148, 163, 184, 0.12)', text: '#94a3b8', border: 'rgba(148, 163, 184, 0.2)' },
 };
 
-const DEFAULT_MEMBERS = [
-  { id: 'user-1', name: 'Soumya Mohanty', username: 'soumya', role: 'owner', status: 'online' },
-  { id: 'contact-sarah', name: 'Sarah Connor', username: 'sarah', role: 'admin', status: 'online' },
-  { id: 'contact-david', name: 'David Chen', username: 'david', role: 'moderator', status: 'offline' },
-  { id: 'contact-alex', name: 'Alex Morgan', username: 'alex', role: 'member', status: 'online' },
-  { id: 'contact-maya', name: 'Maya Lin', username: 'maya', role: 'member', status: 'online' },
-];
-
 export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
   const [copied, setCopied] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -132,7 +124,7 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
               <Users size={14} className="text-blue-500" />
-              <span>{isDirect ? 'Mutual Connections' : `Participants (${DEFAULT_MEMBERS.length})`}</span>
+              <span>{isDirect ? 'Mutual Connections' : `Participants (${(chat.members || []).length})`}</span>
             </span>
           </div>
 
@@ -142,7 +134,7 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
                 You both are members of <strong className="text-[var(--text-primary)]">Zyntra Technologies</strong> and <strong className="text-[var(--text-primary)]">Design Team</strong>.
               </div>
             ) : (
-              DEFAULT_MEMBERS.map((m) => {
+              (chat.members || []).map((m) => {
                 const roleCfg = ROLE_CONFIG[m.role] || ROLE_CONFIG.member;
                 return (
                   <div

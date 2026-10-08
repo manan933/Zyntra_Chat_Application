@@ -5,7 +5,6 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 import app from './app.js';
-import { connectDB } from './config/db.js';
 import { setupChatSocket } from './sockets/chatSocket.js';
 
 const server = http.createServer(app);
@@ -28,23 +27,15 @@ const io = new Server(server, {
 // Socket.io initialization
 setupChatSocket(io);
 
-// Connect to MongoDB Atlas and start listening
+// Start listening (using embedded storage engine)
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(`🚀 Zyntra Backend Server running on port ${PORT}`);
-    console.log(`📡 Socket.io ready for realtime communication`);
-    console.log(`🌐 Health check available at: http://localhost:${PORT}/api/health`);
-    console.log(`=======================================================`);
-  });
-}).catch((err) => {
-  console.error('Fatal: Could not connect to MongoDB Atlas at startup:', err.message);
-  // Still listen so health check and offline fallbacks are accessible
-  server.listen(PORT, () => {
-    console.log(`⚠️ Server running in offline-fallback mode on port ${PORT}`);
-  });
+server.listen(PORT, () => {
+  console.log(`=======================================================`);
+  console.log(`🚀 Zyntra Backend Server running on port ${PORT}`);
+  console.log(`📡 Socket.io ready for realtime communication`);
+  console.log(`🌐 Health check available at: http://localhost:${PORT}/api/health`);
+  console.log(`=======================================================`);
 });
 
 export { app, server, io };

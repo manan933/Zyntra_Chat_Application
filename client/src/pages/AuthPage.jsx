@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, Zap, MessageSquare, Building2, Lock } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, MessageSquare, Building2, Lock } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export const AuthPage = () => {
@@ -28,12 +28,6 @@ export const AuthPage = () => {
       if (!email.trim() || !password) return;
       await login(email.trim(), password);
     }
-  };
-
-  const handleDemoLogin = async () => {
-    setEmail('soumya@zyntra.com');
-    setPassword('password123');
-    await login('soumya@zyntra.com', 'password123');
   };
 
   return (
@@ -304,32 +298,7 @@ export const AuthPage = () => {
             </button>
           </form>
 
-          {/* Quick Demo Test Login Section */}
-          {!isRegister && (
-            <div className="mt-6 pt-5 border-t border-[var(--border)]">
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] hover:border-amber-500/40 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition-all flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
-                    <Zap size={15} />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-bold text-[var(--text-primary)] text-xs sm:text-sm">
-                      Quick Demo Login (Soumya)
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">
-                      Instant 1-click test session with preloaded chats
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight size={15} className="text-[var(--text-muted)] group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
-              </button>
-            </div>
-          )}
+
 
           {/* Security & Privacy Reassurance */}
           <div className="mt-8 pt-4 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] text-center">

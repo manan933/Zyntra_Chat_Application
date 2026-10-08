@@ -2,15 +2,6 @@ import { create } from 'zustand';
 import api from '../api/api';
 import socketService from '../api/socket';
 
-const DEMO_USER = {
-  id: 'user-1',
-  _id: 'user-1',
-  name: 'Soumya Mohanty',
-  email: 'soumya@zyntra.com',
-  primaryUsername: 'soumya',
-  avatar: null,
-};
-
 const getInitialUser = () => {
   try {
     const cached = localStorage.getItem('zyntra_user');
@@ -54,20 +45,9 @@ export const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
 
-    // If demo account, try API but fallback immediately if offline/hanging
-    const isDemo = email.toLowerCase() === 'soumya@zyntra.com';
-
     let res = null;
     try {
-      if (isDemo) {
-        // Fast race: don't let user hang 10-30s if MongoDB is down
-        const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve({ ok: false, isTimeout: true }), 1200)
-        );
-        res = await Promise.race([api.auth.login({ email, password }), timeoutPromise]);
-      } else {
-        res = await api.auth.login({ email, password });
-      }
+      res = await api.auth.login({ email, password });
     } catch {
       res = { ok: false };
     }
@@ -79,7 +59,7 @@ export const useAuthStore = create((set, get) => ({
 
       set({
         user,
-        token: token || 'demo-token',
+        token,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -89,25 +69,7 @@ export const useAuthStore = create((set, get) => ({
       return { success: true };
     }
 
-    // Graceful instant fallback for demo account when MongoDB is initializing or offline
-    if (isDemo) {
-      const demoToken = 'jwt-demo-session-token';
-      localStorage.setItem('zyntra_token', demoToken);
-      localStorage.setItem('zyntra_user', JSON.stringify(DEMO_USER));
-
-      set({
-        user: DEMO_USER,
-        token: demoToken,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
-
-      socketService.connect();
-      return { success: true };
-    }
-
-    const errorMsg = res.error || 'Invalid email or password';
+    const errorMsg = res?.error || 'Invalid email or password';
     set({ isLoading: false, error: errorMsg });
     return { success: false, error: errorMsg };
   },
