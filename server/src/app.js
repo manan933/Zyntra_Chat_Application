@@ -64,6 +64,12 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/upload', uploadRoutes);
 
+// Serve React Frontend in Production
+app.use(express.static(path.join(__dirname, '../../client/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+});
+
 // Error Handler Middleware
 app.use(errorHandler);
 
