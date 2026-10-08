@@ -48,10 +48,7 @@ const upload = multer({
 
 const router = express.Router();
 
-// @route   POST /api/upload
-// @desc    Upload single image or file attachment
-// @access  Public
-router.post('/', upload.single('file'), (req, res) => {
+const handleUpload = (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -82,6 +79,12 @@ router.post('/', upload.single('file'), (req, res) => {
       message: error.message || 'File upload failed',
     });
   }
-});
+};
 
-export default router;
+// @route   POST /api/upload & POST /api/upload/file
+// @desc    Upload single image or file attachment
+// @access  Public
+router.post('/', upload.single('file'), handleUpload);
+router.post('/file', upload.single('file'), handleUpload);
+
+export default router;

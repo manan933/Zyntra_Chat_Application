@@ -127,21 +127,28 @@ export const register = async (req, res, next) => {
 // @access  Public
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
+    const { email, username, emailOrUsername, password } = req.body || {};
+    const rawIdentifier = email || emailOrUsername || username || '';
 
-    if (!email || !password) {
+    if (!rawIdentifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide an email and password',
+        message: 'Please provide an email or username and password',
       });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanIdentifier = rawIdentifier.toLowerCase().trim().replace(/^@/, '');
 
     // 1. If MongoDB is connected, attempt via Mongoose
     if (mongoose.connection.readyState === 1) {
       try {
-        const user = await User.findOne({ email: cleanEmail }).select('+password');
+        const user = await User.findOne({
+          $or: [
+            { email: cleanIdentifier },
+            { primaryUsername: cleanIdentifier },
+          ],
+        }).select('+password');
+
         if (user) {
           const isMatch = await user.matchPassword(password);
           if (isMatch) {
@@ -159,7 +166,11 @@ export const login = async (req, res, next) => {
     }
 
     // 2. Embedded Storage Engine
-    const user = await storageService.findUserByEmail(cleanEmail);
+    let user = await storageService.findUserByEmail(cleanIdentifier);
+    if (!user) {
+      user = await storageService.findUserByUsername(cleanIdentifier);
+    }
+
     if (!user) {
       return res.status(401).json({
         success: false,

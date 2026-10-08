@@ -505,6 +505,31 @@ class StorageService {
     return msg;
   }
 
+  async searchUsers(query, excludeUserId) {
+    const q = (query || '').toLowerCase().trim().replace(/^@/, '');
+    return this.db.users
+      .filter((u) => {
+        if (excludeUserId && (u._id === excludeUserId || u.id === excludeUserId)) return false;
+        if (!q) return true;
+        return (
+          u.name?.toLowerCase().includes(q) ||
+          u.primaryUsername?.toLowerCase().includes(q) ||
+          u.email?.toLowerCase().includes(q)
+        );
+      })
+      .map((u) => ({
+        id: u._id || u.id,
+        _id: u._id || u.id,
+        name: u.name,
+        username: u.primaryUsername,
+        primaryUsername: u.primaryUsername,
+        email: u.email,
+        avatar: u.avatar || null,
+        bio: u.bio || '',
+        status: u.status || 'online',
+      }));
+  }
+
   // ─── CONTACTS & GROUPS OPERATIONS ─────────────────────────────────
   async getContactsAndGroups() {
     return {
@@ -554,6 +579,51 @@ class StorageService {
     return this.db.workspaces;
   }
 
+  async getAllNodes() {
+    const nodeMap = {};
+    for (const ws of this.db.workspaces) {
+      if (Array.isArray(ws.nodes)) {
+        for (const n of ws.nodes) {
+          nodeMap[n.id] = {
+            id: n.id,
+            workspaceId: ws.id,
+            name: n.name,
+            parentId: n.folder || null,
+            children: [],
+            memberCount: n.membersCount || ws.membersCount || 1,
+            hasConversation: true,
+            joinCode: ws.joinCode,
+            description: n.description || `${n.name} channel`,
+            members: [],
+          };
+        }
+      }
+    }
+    return nodeMap;
+  }
+
+  async getWorkspaceTree(workspaceId) {
+    const nodeMap = {};
+    const ws = this.db.workspaces.find((w) => w.id === workspaceId);
+    if (ws && Array.isArray(ws.nodes)) {
+      for (const n of ws.nodes) {
+        nodeMap[n.id] = {
+          id: n.id,
+          workspaceId: ws.id,
+          name: n.name,
+          parentId: n.folder || null,
+          children: [],
+          memberCount: n.membersCount || ws.membersCount || 1,
+          hasConversation: true,
+          joinCode: ws.joinCode,
+          description: n.description || `${n.name} channel`,
+          members: [],
+        };
+      }
+    }
+    return nodeMap;
+  }
+
   async createWorkspace(name, contextualUsername) {
     const wsId = `ws-${Date.now()}`;
     const code = `WS-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -573,6 +643,30 @@ class StorageService {
     this.db.workspaces.push(newWs);
     this.persistDatabase();
     return newWs;
+  }
+
+  async addNodeToWorkspace(workspaceId, { name, folder, description, isAnnouncement = false }) {
+    let ws = this.db.workspaces.find((w) => w.id === workspaceId);
+    if (!ws) {
+      ws = this.db.workspaces[0];
+    }
+    if (!ws) throw new Error('Workspace not found');
+
+    const cleanName = (name || 'new-channel').replace(/^#/, '').toLowerCase().trim();
+    const nodeId = `${ws.id}-${cleanName}-${Date.now().toString(36)}`;
+    const newNode = {
+      id: nodeId,
+      name: cleanName,
+      membersCount: ws.membersCount || 1,
+      folder: folder || null,
+      description: description || '',
+      isAnnouncement: Boolean(isAnnouncement),
+    };
+
+    if (!ws.nodes) ws.nodes = [];
+    ws.nodes.push(newNode);
+    this.persistDatabase();
+    return newNode;
   }
 
   async joinWorkspace(code) {
@@ -604,3 +698,4 @@ class StorageService {
 
 export const storageService = new StorageService();
 export default storageService;
+
