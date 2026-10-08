@@ -12,7 +12,7 @@ const formatSize = (bytes) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-export const Composer = ({ chatId, onSend, currentUser }) => {
+export const Composer = ({ chatId, onSend, currentUser, policy = {} }) => {
   const [text, setText] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [attachment, setAttachment] = useState(null);
@@ -229,32 +229,38 @@ export const Composer = ({ chatId, onSend, currentUser }) => {
       <div className="flex items-center gap-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl px-3 py-1.5 focus-within:border-[var(--accent)] transition-all">
         {/* Left Action Buttons */}
         <div className="flex items-center gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
-            title="Attach File"
-          >
-            <Paperclip size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => imageInputRef.current?.click()}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
-            title="Upload Photo"
-          >
-            <ImageIcon size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowEmoji(!showEmoji)}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center ${
-              showEmoji ? 'text-[var(--accent)] bg-[var(--accent-subtle)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            }`}
-            title="Emoji"
-          >
-            <Smile size={18} />
-          </button>
+          {policy?.allowAttachments !== false && (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                title="Attach File"
+              >
+                <Paperclip size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                title="Upload Photo"
+              >
+                <ImageIcon size={18} />
+              </button>
+            </>
+          )}
+          {policy?.allowEmojis !== false && (
+            <button
+              type="button"
+              onClick={() => setShowEmoji(!showEmoji)}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center ${
+                showEmoji ? 'text-[var(--accent)] bg-[var(--accent-subtle)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
+              title="Emoji"
+            >
+              <Smile size={18} />
+            </button>
+          )}
         </div>
 
         {/* Textarea */}

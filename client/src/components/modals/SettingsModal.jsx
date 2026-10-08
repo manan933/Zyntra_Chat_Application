@@ -166,7 +166,7 @@ export const SettingsModal = ({
             { id: 'profile', label: 'My Profile', icon: User },
             { id: 'appearance', label: 'Appearance', icon: Palette },
             { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'privacy', label: 'Privacy & E2EE', icon: Shield },
+            { id: 'privacy', label: 'Privacy', icon: Shield },
             { id: 'workplaces', label: 'Workplaces', icon: Building2 },
             { id: 'account', label: 'Security & Login', icon: Lock },
           ].map((tab) => {
@@ -548,30 +548,9 @@ export const SettingsModal = ({
             </div>
           )}
 
-          {/* ──────────────── TAB 4: PRIVACY & E2EE ────────────────────── */}
+          {/* ──────────────── TAB 4: PRIVACY ────────────────────── */}
           {activeTab === 'privacy' && (
             <div className="flex flex-col gap-4">
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-transparent border border-emerald-500/20">
-                <div className="flex items-center gap-2 mb-1.5 text-emerald-400 font-bold text-xs">
-                  <ShieldCheck size={16} />
-                  <span>End-to-End Encryption Active (Curve25519)</span>
-                </div>
-                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed m-0 mb-3">
-                  Messages, media attachments, and room vaults are encrypted on your local client before hitting the socket network.
-                </p>
-                <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)]">
-                  <div className="font-mono text-[10px] text-[var(--text-muted)] truncate">
-                    Fingerprint: 8F2A-4C19-E08B-9321-7D4F-ZYN2
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy('8F2A-4C19-E08B-9321-7D4F-ZYN2', 'fingerprint')}
-                    className="text-[10px] font-bold text-[var(--accent)] hover:underline bg-transparent border-none cursor-pointer"
-                  >
-                    {copiedCode === 'fingerprint' ? 'Copied!' : 'Copy Key'}
-                  </button>
-                </div>
-              </div>
 
               <div className="p-3.5 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border)] flex items-center justify-between">
                 <div>
@@ -654,9 +633,35 @@ export const SettingsModal = ({
                             {ws.isOwner ? 'Owner' : 'Member'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                        <div className="text-[10px] text-[var(--text-muted)] font-mono mb-2">
                           {ws.membersCount || 45} members · {ws.nodes?.length || 3} channels
                         </div>
+
+                        {ws.isOwner && (
+                          <div className="flex flex-col gap-2 bg-[var(--bg-primary)] p-2 rounded-xl border border-[var(--border)] w-[180px]">
+                            <div className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
+                              Permissions
+                            </div>
+                            <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-[10px] font-semibold text-[var(--text-primary)]">Allow Emojis</span>
+                              <input 
+                                type="checkbox" 
+                                checked={ws.settings?.allowEmojis !== false}
+                                onChange={() => useChatStore.getState().toggleWorkspaceSetting(ws.id, 'allowEmojis')}
+                                className="w-3 h-3 accent-blue-600"
+                              />
+                            </label>
+                            <label className="flex items-center justify-between cursor-pointer">
+                              <span className="text-[10px] font-semibold text-[var(--text-primary)]">Allow File Share</span>
+                              <input 
+                                type="checkbox" 
+                                checked={ws.settings?.allowAttachments !== false}
+                                onChange={() => useChatStore.getState().toggleWorkspaceSetting(ws.id, 'allowAttachments')}
+                                className="w-3 h-3 accent-blue-600"
+                              />
+                            </label>
+                          </div>
+                        )}
                       </div>
                     </div>
 

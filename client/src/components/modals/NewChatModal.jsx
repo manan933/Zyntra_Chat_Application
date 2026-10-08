@@ -92,14 +92,14 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Start New Conversation">
       {/* Tabs */}
-      <div className="flex items-center gap-2 p-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl mb-4">
+      <div className="flex items-center gap-2 p-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl mb-4 overflow-x-auto custom-scrollbar">
         <button
           type="button"
           onClick={() => {
             setActiveTab('contact');
             setError(null);
           }}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+          className={`shrink-0 flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 ${
             activeTab === 'contact'
               ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -115,7 +115,7 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
             setActiveTab('group');
             setError(null);
           }}
-          className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+          className={`shrink-0 flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 ${
             activeTab === 'group'
               ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
@@ -123,6 +123,22 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
         >
           <Users size={14} />
           <span>New Group</span>
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('join_group');
+            setError(null);
+          }}
+          className={`shrink-0 flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+            activeTab === 'join_group'
+              ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-xs'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Search size={14} />
+          <span>Join Group</span>
         </button>
       </div>
 
@@ -228,6 +244,36 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
           >
             {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
             <span>Create Group</span>
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          alert('Join group by ID triggered: ' + groupName); // Since we don't have backend, mock it
+          onClose();
+        }} className="flex flex-col gap-3">
+          <div>
+            <label className="text-[11px] font-bold text-[var(--text-secondary)] block mb-1">
+              Group Invite Code / ID *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. GRP-XYZ-123"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+              autoFocus
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={!groupName.trim()}
+            className="w-full py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-sm disabled:opacity-50 mt-2 flex items-center justify-center gap-1.5"
+          >
+            <Users size={14} />
+            <span>Join Group</span>
           </button>
         </form>
       )}

@@ -333,44 +333,83 @@ export const Sidebar = ({
               <p>Click &ldquo;+ New Chat&rdquo; above to find friends by username.</p>
             </div>
           ) : (
-            directList.map((item) => {
-              const isActive = activeChat?.id === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelectChat(item)}
-                  className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer border-none text-left ${
-                    isActive
-                      ? 'bg-[var(--accent-subtle)] text-[var(--text-primary)]'
-                      : 'hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]'
-                  }`}
-                >
-                  <Avatar
-                    name={item.name}
-                    src={item.avatar}
-                    size="md"
-                    status={item.status || 'online'}
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="text-sm truncate font-semibold text-[var(--text-primary)]">
-                        {item.name}
-                      </span>
-                      {item.lastMessageTime && (
-                        <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
-                          {formatTime(item.lastMessageTime)}
-                        </span>
-                      )}
+            <>
+              {directList.filter(i => i.type === 'contact').length > 0 && (
+                <div className="pt-2 pb-1 px-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    Direct Messages
+                  </span>
+                </div>
+              )}
+              {directList.filter(i => i.type === 'contact').map((item) => {
+                const isActive = activeChat?.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelectChat(item)}
+                    className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer border-none text-left ${
+                      isActive
+                        ? 'bg-[var(--accent-subtle)] text-[var(--text-primary)]'
+                        : 'hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <Avatar name={item.name} src={item.avatar} size="md" status={item.status || 'online'} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-sm truncate font-semibold text-[var(--text-primary)]">{item.name}</span>
+                        {item.lastMessageTime && (
+                          <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
+                            {formatTime(item.lastMessageTime)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate m-0 leading-tight">
+                        {item.lastMessage || 'Connected on Zyntra'}
+                      </p>
                     </div>
-                    <p className="text-xs text-[var(--text-muted)] truncate m-0 leading-tight">
-                      {item.lastMessage || 'Connected on Zyntra'}
-                    </p>
-                  </div>
-                </button>
-              );
-            })
+                  </button>
+                );
+              })}
+
+              {directList.filter(i => i.type === 'group').length > 0 && (
+                <div className="pt-4 pb-1 px-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    Groups
+                  </span>
+                </div>
+              )}
+              {directList.filter(i => i.type === 'group').map((item) => {
+                const isActive = activeChat?.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelectChat(item)}
+                    className={`w-full p-2.5 rounded-xl flex items-center gap-3 transition-colors cursor-pointer border-none text-left ${
+                      isActive
+                        ? 'bg-[var(--accent-subtle)] text-[var(--text-primary)]'
+                        : 'hover:bg-[var(--bg-hover)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <Avatar name={item.name} src={item.avatar} size="md" status={null} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-sm truncate font-semibold text-[var(--text-primary)]">{item.name}</span>
+                        {item.lastMessageTime && (
+                          <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-medium">
+                            {formatTime(item.lastMessageTime)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate m-0 leading-tight">
+                        {item.lastMessage || 'Group created'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </>
           )
         ) : (
           /* ── WORKPLACES CHANNELS TREE ────────────────────────────── */

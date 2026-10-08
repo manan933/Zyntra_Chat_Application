@@ -35,6 +35,8 @@ export const ChatArea = ({
   messages = [],
   currentUser,
   typingUsers = [],
+  workspaces = [],
+  onOpenWorkspaceModal,
   onBack,
   onSend,
   onEditMessage,
@@ -53,6 +55,12 @@ export const ChatArea = ({
   const [isVideoCall, setIsVideoCall] = useState(false);
 
   const { wallpaper, soundEnabled } = useThemeStore();
+
+  // Determine policy based on chat type
+  const workspace = chat?.type === 'channel' 
+    ? workspaces.find(w => w.name === chat.workspaceName) 
+    : null;
+  const policy = workspace?.settings || { allowEmojis: true, allowAttachments: true };
 
   // Filter messages if search is active
   const filteredMessages = useMemo(() => {
@@ -112,19 +120,48 @@ export const ChatArea = ({
     onReaction?.(msgId, emoji);
   };
 
-  // If no conversation is active (desktop empty state)
+  // If no conversation is active (Workspace Dashboard)
   if (!chat) {
     return (
-      <div style={{ display: 'flex', flex: '1 1 0%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px', backgroundColor: 'var(--bg-primary)', textAlign: 'center' }}>
+      <div style={{ display: 'flex', flex: '1 1 0%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px', backgroundColor: 'var(--bg-primary)', textAlign: 'center', overflowY: 'auto' }}>
         <div className="w-16 h-16 rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mb-4 shadow-sm">
           <MessageSquare size={32} />
         </div>
-        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-1">
-          Select a Conversation
+        <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+          Welcome to Zyntra!
         </h2>
-        <p className="text-xs text-[var(--text-muted)] max-w-xs leading-relaxed">
-          Choose a contact or channel from the sidebar, or click New Chat to get started.
+        <p className="text-sm text-[var(--text-muted)] max-w-md leading-relaxed mb-8">
+          You can select a conversation from the sidebar, or hop directly into one of your Workspaces below.
         </p>
+
+        <div className="w-full max-w-2xl text-left mb-4">
+          <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider px-2 mb-3">Your Workspaces</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {workspaces.map(ws => (
+              <div key={ws.id} className="p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl flex flex-col items-start hover:border-[var(--accent)] transition-colors">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                    {ws.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-[var(--text-primary)] m-0">{ws.name}</h4>
+                    <span className="text-[11px] text-[var(--text-muted)] font-mono">{ws.membersCount} members</span>
+                  </div>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-1 mb-0">{ws.description || 'No description provided.'}</p>
+              </div>
+            ))}
+            <button 
+              onClick={onOpenWorkspaceModal}
+              className="p-4 border-2 border-dashed border-[var(--border)] rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-all cursor-pointer bg-transparent"
+            >
+              <div className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center shadow-sm pointer-events-none">
+                <span className="text-lg font-bold">+</span>
+              </div>
+              <span className="text-sm font-bold">Join or Create Workspace</span>
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -170,10 +207,6 @@ export const ChatArea = ({
                 <h2 className="text-sm font-bold text-[var(--text-primary)] truncate tracking-tight m-0">
                   {chat.name}
                 </h2>
-                <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-semibold border border-emerald-500/20">
-                  <ShieldCheck size={10} />
-                  E2EE
-                </span>
               </div>
               <div className="text-[11px] text-[var(--text-muted)] truncate flex items-center gap-1.5 mt-0.5">
                 {chat.membersCount ? (
@@ -282,7 +315,7 @@ export const ChatArea = ({
                 {searchQuery ? 'No matching messages' : 'Start the Conversation'}
               </div>
               <p className="text-xs text-[var(--text-muted)] max-w-xs">
-                {searchQuery ? `No results found for "${searchQuery}"` : 'Say hello — messages in this chat are end-to-end encrypted.'}
+                {searchQuery ? `No results found for "${searchQuery}"` : 'Say hello — start the conversation.'}
               </p>
             </div>
           ) : (
@@ -345,6 +378,7 @@ export const ChatArea = ({
           chatId={chat.id}
           currentUser={currentUser}
           onSend={handleSendWrapper}
+          policy={policy}
         />
       </div>
 

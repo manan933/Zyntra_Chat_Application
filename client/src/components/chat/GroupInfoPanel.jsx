@@ -84,11 +84,7 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
             {chat.workspaceName ? `${chat.workspaceName}` : chat.username ? `@${chat.username}` : `${chat.membersCount || 12} members`}
           </p>
 
-          {/* E2EE Certificate Badge */}
-          <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/25">
-            <ShieldCheck size={12} />
-            <span>End-to-End Encrypted</span>
-          </div>
+
         </div>
 
         {/* ── Join Code Card (if channel) ───────────────────────────── */}
@@ -114,7 +110,7 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
         )}
 
         {/* ── Quick Controls ────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <button
             type="button"
             onClick={() => setMuted(!muted)}
@@ -126,15 +122,6 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
           >
             {muted ? <BellOff size={14} /> : <Bell size={14} />}
             <span>{muted ? 'Muted' : 'Mute'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => alert(`Verification fingerprint: SHA256:${chat.id}-E2EE-OK`)}
-            className="py-2 px-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <Lock size={14} className="text-emerald-500" />
-            <span>Verify Keys</span>
           </button>
         </div>
 
@@ -200,21 +187,37 @@ export const GroupInfoPanel = ({ chat, onClose, onLeaveChat }) => {
           </div>
         </div>
 
-        {/* ── Leave Action (if group or channel) ────────────────────── */}
+        {/* ── Leave / Delete Action (if group or channel) ────────────────────── */}
         {(isChannel || chat.type === 'group') && (
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm(`Leave ${chat.name}?`)) {
-                onLeaveChat?.(chat.id);
-                onClose();
-              }
-            }}
-            className="w-full mt-2 py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
-          >
-            <LogOut size={14} />
-            <span>Leave {isChannel ? 'Channel' : 'Group'}</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`Leave ${chat.name}?`)) {
+                  onLeaveChat?.(chat.id, 'leave');
+                  onClose();
+                }
+              }}
+              className="py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/25 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+            >
+              <LogOut size={14} />
+              <span>Leave</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`Permanently delete ${chat.name}?`)) {
+                  onLeaveChat?.(chat.id, 'delete');
+                  onClose();
+                }
+              }}
+              className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+            >
+              <X size={14} />
+              <span>Delete</span>
+            </button>
+          </div>
         )}
       </div>
     </aside>

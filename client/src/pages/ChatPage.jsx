@@ -120,6 +120,8 @@ export const ChatPage = () => {
             messages={activeMessages}
             currentUser={user}
             typingUsers={currentTypingUsers}
+            workspaces={workspaces}
+            onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
             onBack={closeChat}
             onSend={(content, attachment) =>
               activeChat && sendMessage(activeChat.id, content, attachment, user)
@@ -133,8 +135,8 @@ export const ChatPage = () => {
             onReaction={(msgId, emoji) =>
               activeChat && addReaction(activeChat.id, msgId, emoji, user?.id || user?._id)
             }
-            onLeaveChat={(chatId) => {
-              closeChat();
+            onLeaveChat={(chatId, action) => {
+              useChatStore.getState().removeChat(chatId, action);
             }}
           />
         </div>

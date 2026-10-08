@@ -84,10 +84,10 @@ export const AuthPage = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-[var(--text-primary)] mb-0.5">
-                End-to-End Encrypted
+                Secure & Private
               </h4>
               <p className="text-xs text-[var(--text-muted)] leading-relaxed m-0">
-                Peer-to-peer authenticated channels ensure private direct messages and attachments stay confidential.
+                Authenticated channels ensure private direct messages and attachments stay confidential.
               </p>
             </div>
           </div>

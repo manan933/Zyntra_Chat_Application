@@ -288,6 +288,14 @@ export const useChatStore = create((set, get) => ({
     set({ activeChat: null });
   },
 
+  removeChat: (chatId, action = 'leave') => {
+    // Only implemented for groups locally
+    set((state) => ({
+      groups: state.groups.filter((g) => g.id !== chatId),
+      activeChat: state.activeChat?.id === chatId ? null : state.activeChat
+    }));
+  },
+
   // Load messages for a chat
   loadMessages: async (chatId) => {
     if (!chatId) return;
@@ -597,6 +605,22 @@ export const useChatStore = create((set, get) => ({
   leaveWorkspace: (workspaceId) => {
     set((state) => ({
       workspaces: state.workspaces.filter((ws) => ws.id !== workspaceId),
+    }));
+  },
+
+  toggleWorkspaceSetting: (workspaceId, settingKey) => {
+    set((state) => ({
+      workspaces: state.workspaces.map((ws) => {
+        if (ws.id !== workspaceId) return ws;
+        const currentSettings = ws.settings || { allowEmojis: true, allowAttachments: true };
+        return {
+          ...ws,
+          settings: {
+            ...currentSettings,
+            [settingKey]: currentSettings[settingKey] === false ? true : false,
+          }
+        };
+      })
     }));
   },
 
