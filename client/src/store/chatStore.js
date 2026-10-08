@@ -194,14 +194,20 @@ export const useChatStore = create((set, get) => ({
     });
 
     const preview = message.content || (message.attachment?.type === 'image' ? '📷 Photo' : '📎 Attachment');
-    set((state) => ({
-      contacts: state.contacts.map((c) =>
-        c.id === chatId ? { ...c, lastMessage: preview, lastMessageTime: message.timestamp || new Date().toISOString() } : c
-      ),
-      groups: state.groups.map((g) =>
-        g.id === chatId ? { ...g, lastMessage: preview, lastMessageTime: message.timestamp || new Date().toISOString() } : g
-      ),
-    }));
+    const hasChat = get().contacts.some(c => c.id === chatId) || get().groups.some(g => g.id === chatId);
+
+    if (!hasChat) {
+      get().loadChats();
+    } else {
+      set((state) => ({
+        contacts: state.contacts.map((c) =>
+          c.id === chatId ? { ...c, lastMessage: preview, lastMessageTime: message.timestamp || new Date().toISOString() } : c
+        ),
+        groups: state.groups.map((g) =>
+          g.id === chatId ? { ...g, lastMessage: preview, lastMessageTime: message.timestamp || new Date().toISOString() } : g
+        ),
+      }));
+    }
   },
 
   // Add / toggle reaction on message
@@ -308,20 +314,7 @@ export const useChatStore = create((set, get) => ({
       return { success: true, contact: res.data };
     }
 
-    // Local fallback creation
-    const newContact = {
-      id: `contact-${cleanUsername}`,
-      name: cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1),
-      username: cleanUsername,
-      status: 'online',
-      lastMessage: 'Added as contact',
-      lastMessageTime: new Date().toISOString(),
-      avatar: null,
-    };
-    set((state) => ({
-      contacts: [newContact, ...state.contacts],
-    }));
-    return { success: true, contact: newContact };
+    return { success: false, error: res.error || res.data?.message || 'Failed to add contact' };
   },
 
   createGroup: async (name, description = '') => {

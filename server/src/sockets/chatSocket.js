@@ -1,6 +1,4 @@
-import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
-import Message from '../models/Message.js';
 import storageService from '../services/storageService.js';
 
 export const setupChatSocket = (io) => {
@@ -74,24 +72,6 @@ export const setupChatSocket = (io) => {
 
         // 2. Broadcast immediately to peers in the room
         socket.to(chatId).emit('receive_message', savedMessage);
-
-        // 3. Optional async sync to MongoDB if connected
-        if (mongoose.connection.readyState === 1) {
-          Message.create({
-            id: messageId,
-            chatId,
-            chatType: chatType || 'workspace-node',
-            senderId: socket.user?.id || senderId || 'user-1',
-            senderName: senderName || 'User',
-            senderUsername: senderUsername || '',
-            senderAvatar: senderAvatar || null,
-            content: finalContent,
-            type: attachment?.type || 'text',
-            attachment: attachment || null,
-            reactions: [],
-            timestamp: timestamp ? new Date(timestamp) : new Date(),
-          }).catch(() => {});
-        }
       } catch (err) {
         console.error('[Socket.io] Error sending message:', err.message);
       }
@@ -116,22 +96,6 @@ export const setupChatSocket = (io) => {
 
         if (chatId && updated) {
           io.to(chatId).emit('update_reaction', updated);
-        }
-
-        // Optional async sync to MongoDB
-        if (mongoose.connection.readyState === 1) {
-          Message.findOne({ id: messageId }).then((msg) => {
-            if (msg) {
-              const existing = msg.reactions.find((r) => r.emoji === emoji);
-              if (existing) {
-                if (!existing.users.includes(uid)) existing.users.push(uid);
-                existing.count = existing.users.length;
-              } else {
-                msg.reactions.push({ emoji, count: 1, users: [uid] });
-              }
-              msg.save().catch(() => {});
-            }
-          }).catch(() => {});
         }
       } catch (err) {
         console.error('[Socket.io] Error in reaction handler:', err.message);

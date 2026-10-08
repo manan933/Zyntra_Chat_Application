@@ -87,7 +87,14 @@ class StorageService {
     }));
   }
 
+  getCanonicalDmId(username1, username2) {
+    const u1 = (username1 || '').toLowerCase().trim().replace(/^@/, '');
+    const u2 = (username2 || '').toLowerCase().trim().replace(/^@/, '');
+    return 'dm_' + [u1, u2].sort().join('_');
+  }
+
   async saveMessage(message) {
+    console.log(`[DB] saveMessage in ${message.chatId}: ${message.content?.substring(0, 30)}`);
     await db.execute({
       sql: 'INSERT INTO messages (id, chatId, senderId, senderName, senderUsername, content, attachment, reactions, isEdited, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       args: [
@@ -97,6 +104,28 @@ class StorageService {
         '[]', 0, message.timestamp || new Date().toISOString()
       ]
     });
+
+    // If this is a DM, auto-link the contacts so both users see the conversation
+    if (message.chatId && message.chatId.startsWith('dm_')) {
+      const parts = message.chatId.replace('dm_', '').split('_');
+      if (parts.length === 2) {
+        try {
+          const u1 = await this.findUserByUsername(parts[0]);
+          const u2 = await this.findUserByUsername(parts[1]);
+          if (u1 && u2) {
+            await db.execute({
+              sql: 'INSERT OR IGNORE INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
+              args: [`c_${u1._id}_${u2._id}`, u1._id, u2._id, 'contact']
+            }).catch(() => {});
+            await db.execute({
+              sql: 'INSERT OR IGNORE INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
+              args: [`c_${u2._id}_${u1._id}`, u2._id, u1._id, 'contact']
+            }).catch(() => {});
+          }
+        } catch (e) { /* ignored */ }
+      }
+    }
+
     return message;
   }
 
@@ -142,43 +171,150 @@ class StorageService {
     return msgs.find(m => m.id === messageId);
   }
 
-  async getContactsAndGroups() {
+  async getUserConversations(currentUserId, currentUsername) {
+    const cleanUsername = (currentUsername || '').toLowerCase().trim().replace(/^@/, '');
+    console.log(`[DB] getUserConversations for ${cleanUsername} (${currentUserId})`);
+
+    // 1. Get all contacts where current user is involved
+    const contactsRes = await db.execute({
+      sql: 'SELECT * FROM contacts WHERE user_id = ? OR contact_id = ?',
+      args: [currentUserId, currentUserId]
+    });
+
+    // 2. Also check messages table for any DMs involving currentUsername
+    const messagesRes = await db.execute({
+      sql: 'SELECT DISTINCT chatId FROM messages WHERE chatId LIKE ?',
+      args: [`%${cleanUsername}%`]
+    });
+
+    const partnerUsernames = new Set();
+    const partnerUserIds = new Set();
+
+    for (const row of contactsRes.rows) {
+      const partnerId = row.user_id === currentUserId ? row.contact_id : row.user_id;
+      if (partnerId && partnerId !== currentUserId) {
+        partnerUserIds.add(partnerId);
+      }
+    }
+
+    for (const row of messagesRes.rows) {
+      if (row.chatId && row.chatId.startsWith('dm_')) {
+        const parts = row.chatId.replace('dm_', '').split('_');
+        if (parts.length === 2) {
+          const partner = parts[0] === cleanUsername ? parts[1] : (parts[1] === cleanUsername ? parts[0] : null);
+          if (partner && partner !== cleanUsername) {
+            partnerUsernames.add(partner);
+          }
+        }
+      }
+    }
+
+    // Resolve user details
+    const partnerUsers = [];
+    for (const uid of partnerUserIds) {
+      const u = await this.findUserById(uid);
+      if (u && u.primaryUsername !== cleanUsername && !partnerUsers.some(p => p._id === u._id)) {
+        partnerUsers.push(u);
+      }
+    }
+    for (const uname of partnerUsernames) {
+      const u = await this.findUserByUsername(uname);
+      if (u && u.primaryUsername !== cleanUsername && !partnerUsers.some(p => p._id === u._id)) {
+        partnerUsers.push(u);
+      }
+    }
+
+    // Build conversation list
+    const conversations = [];
+    for (const partner of partnerUsers) {
+      const dmId = this.getCanonicalDmId(cleanUsername, partner.primaryUsername);
+      
+      const lastMsgRes = await db.execute({
+        sql: 'SELECT content, attachment, timestamp FROM messages WHERE chatId = ? ORDER BY timestamp DESC LIMIT 1',
+        args: [dmId]
+      });
+
+      let lastMessage = 'Connected on Zyntra';
+      let lastMessageTime = partner.created_at || new Date().toISOString();
+
+      if (lastMsgRes.rows.length > 0) {
+        const m = lastMsgRes.rows[0];
+        lastMessage = m.content || (m.attachment ? '📎 Attachment' : 'Message');
+        lastMessageTime = m.timestamp;
+      }
+
+      conversations.push({
+        id: dmId,
+        userId: partner._id,
+        username: partner.primaryUsername,
+        name: partner.name,
+        avatar: partner.avatar,
+        status: partner.status || 'online',
+        bio: partner.bio || '',
+        lastMessage,
+        lastMessageTime,
+        type: 'contact',
+      });
+    }
+
+    conversations.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
+    const groupsRes = await db.execute('SELECT * FROM groups');
+
+    return {
+      contacts: conversations,
+      groups: groupsRes.rows.map(g => ({ ...g, type: 'group' }))
+    };
+  }
+
+  async getContactsAndGroups(userId, username) {
+    if (userId) {
+      return this.getUserConversations(userId, username);
+    }
     const cRes = await db.execute('SELECT * FROM contacts');
     const gRes = await db.execute('SELECT * FROM groups');
+    return { contacts: cRes.rows, groups: gRes.rows.map(g => ({ ...g, type: 'group' })) };
+  }
+
+  async addContact(currentUserId, currentUsername, targetUsername) {
+    const cleanTarget = (targetUsername || '').toLowerCase().trim().replace(/^@/, '');
+    const cleanCurrent = (currentUsername || '').toLowerCase().trim().replace(/^@/, '');
     
-    const mappedContacts = cRes.rows.map(c => ({
-      id: c.id,
-      userId: c.contact_id,
-      username: c.contact_id.replace('user-', ''), 
-      name: c.contact_id.replace('user-', ''), // Simplified mapping
+    console.log(`[DB] addContact: ${cleanCurrent} adding ${cleanTarget}`);
+    const targetUser = await this.findUserByUsername(cleanTarget);
+    if (!targetUser) return null;
+
+    const dmId = this.getCanonicalDmId(cleanCurrent, cleanTarget);
+
+    try {
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
+        args: [`c_${currentUserId}_${targetUser._id}`, currentUserId, targetUser._id, 'contact']
+      });
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
+        args: [`c_${targetUser._id}_${currentUserId}`, targetUser._id, currentUserId, 'contact']
+      });
+    } catch (e) {
+      console.warn('[DB] addContact relation warning:', e.message);
+    }
+
+    return {
+      id: dmId,
+      userId: targetUser._id,
+      username: targetUser.primaryUsername,
+      name: targetUser.name,
+      avatar: targetUser.avatar,
+      status: targetUser.status || 'online',
+      bio: targetUser.bio || '',
+      lastMessage: 'Connected on Zyntra',
+      lastMessageTime: new Date().toISOString(),
       type: 'contact'
-    }));
-    return { contacts: mappedContacts, groups: gRes.rows };
+    };
   }
 
   async addContactByUsername(username) {
-    const clean = username.replace(/^@/, '').toLowerCase().trim();
-    const contactId = `contact-${clean}`;
-    const targetUser = await this.findUserByUsername(clean);
-    const targetId = targetUser ? targetUser._id : `user-${clean}`;
-    
-    try {
-      await db.execute({
-        sql: 'INSERT INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
-        args: [contactId, 'current-user', targetId, 'contact']
-      });
-    } catch (e) { /* ignored */ }
-    
-    return {
-      id: contactId,
-      userId: targetId,
-      name: targetUser ? targetUser.name : clean,
-      username: clean,
-      avatar: targetUser ? targetUser.avatar : null,
-      status: targetUser ? targetUser.status : 'online',
-      lastMessage: 'Added as connection',
-      lastMessageTime: new Date().toISOString()
-    };
+    return this.addContact('temp-user', 'user', username);
   }
 
   async createGroup(name, description = '') {
