@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, MessageSquare, Building2, Lock } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, MessageSquare, Building2, Lock, Zap } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export const AuthPage = () => {
