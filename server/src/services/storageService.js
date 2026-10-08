@@ -1,4 +1,4 @@
-﻿import { db } from '../config/turso.js';
+import { db } from '../config/turso.js';
 import bcrypt from 'bcryptjs';
 
 class StorageService {
@@ -21,7 +21,7 @@ class StorageService {
   }
 
   async createUser({ name, email, primaryUsername, password, avatar, bio }) {
-    const id = \user-\\;
+    const id = `user-${Date.now()}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
     await db.execute({
       sql: 'INSERT INTO users (_id, name, email, primaryUsername, password, avatar, bio, contexts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -50,7 +50,7 @@ class StorageService {
   }
 
   async searchUsers(query, excludeUserId) {
-    const q = \%\%\;
+    const q = `%${(query || '').toLowerCase().trim().replace(/^@/, '')}%`;
     const res = await db.execute({
       sql: 'SELECT * FROM users WHERE _id != ? AND (LOWER(name) LIKE ? OR LOWER(primaryUsername) LIKE ? OR LOWER(email) LIKE ?)',
       args: [excludeUserId || '', q, q, q]
@@ -142,16 +142,16 @@ class StorageService {
 
   async addContactByUsername(username) {
     const clean = username.replace(/^@/, '').toLowerCase().trim();
-    const contactId = \contact-\\;
+    const contactId = `contact-${clean}`;
     const targetUser = await this.findUserByUsername(clean);
-    const targetId = targetUser ? targetUser._id : \user-\\;
+    const targetId = targetUser ? targetUser._id : `user-${clean}`;
     
     try {
       await db.execute({
         sql: 'INSERT INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
         args: [contactId, 'current-user', targetId, 'contact']
       });
-    } catch (e) {} // Ignore unique constraint
+    } catch (e) { /* ignored */ } // Ignore unique constraint
     
     return {
       id: contactId,
@@ -166,7 +166,7 @@ class StorageService {
   }
 
   async createGroup(name, description = '') {
-    const id = \group-\\;
+    const id = `group-${Date.now()}`;
     await db.execute({
       sql: 'INSERT INTO groups (id, name, description, type, created_at) VALUES (?, ?, ?, ?, ?)',
       args: [id, name, description, 'group', new Date().toISOString()]
@@ -196,7 +196,7 @@ class StorageService {
         memberCount: n.membersCount || 1,
         hasConversation: true,
         joinCode: '',
-        description: \\ channel\,
+        description: `${n.name} channel`,
         members: []
       };
     }
@@ -208,8 +208,8 @@ class StorageService {
   }
 
   async createWorkspace(name, contextualUsername) {
-    const wsId = \ws-\\;
-    const code = \WS-\\;
+    const wsId = `ws-${Date.now()}`;
+    const code = `WS-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     await db.execute({
       sql: 'INSERT INTO workspaces (id, name, joinCode, description, settings, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       args: [wsId, name, code, '', '{}', new Date().toISOString()]
@@ -224,7 +224,7 @@ class StorageService {
 
   async addNodeToWorkspace(workspaceId, { name, folder, description, isAnnouncement = false }) {
     const cleanName = (name || 'new-channel').replace(/^#/, '').toLowerCase().trim();
-    const nodeId = \\-\-\\;
+    const nodeId = `${workspaceId}-${cleanName}-${Date.now().toString(36)}`;
     
     await db.execute({
       sql: 'INSERT INTO nodes (id, workspace_id, name, folder, isAnnouncement, membersCount) VALUES (?, ?, ?, ?, ?, ?)',

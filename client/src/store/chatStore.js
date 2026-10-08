@@ -161,7 +161,7 @@ export const useChatStore = create((set, get) => ({
     socketService.sendMessage(optimisticMessage);
 
     // 3. Persist to API
-    api.messages.send(chatId, optimisticMessage).catch(() => {});
+    api.messages.send(chatId, optimisticMessage).catch((e) => { console.error('ignored', e); });
 
     // 4. Update last message preview
     const previewText = optimisticMessage.content || (attachment?.type === 'image' ? '📷 Photo' : '📎 Attachment');
@@ -248,7 +248,7 @@ export const useChatStore = create((set, get) => ({
     });
 
     socketService.sendReaction({ messageId, emoji, userId: uid, chatId });
-    api.messages.reaction(messageId, emoji, uid).catch(() => {});
+    api.messages.reaction(messageId, emoji, uid).catch((e) => { console.error('ignored', e); });
   },
 
   updateReaction: (updatedMessage) => {
@@ -282,7 +282,7 @@ export const useChatStore = create((set, get) => ({
       };
     });
 
-    api.messages.edit(messageId, newContent.trim()).catch(() => {});
+    api.messages.edit(messageId, newContent.trim()).catch((e) => { console.error('ignored', e); });
   },
 
   deleteMessage: async (chatId, messageId) => {
@@ -297,7 +297,7 @@ export const useChatStore = create((set, get) => ({
       };
     });
 
-    api.messages.delete(messageId).catch(() => {});
+    api.messages.delete(messageId).catch((e) => { console.error('ignored', e); });
   },
 
   addContact: async (username) => {

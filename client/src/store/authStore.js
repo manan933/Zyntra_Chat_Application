@@ -35,8 +35,9 @@ export const useAuthStore = create((set, get) => ({
       } else if (res.status === 401) {
         get().logout();
       }
-    } catch {
+    } catch (e) {
       // Keep cached user on network error
+      console.error('ignored', e);
     } finally {
       set({ isLoading: false });
     }
