@@ -246,12 +246,12 @@ export const AuthPage = () => {
 
             <div>
               <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
-                Email or Username
+                {isRegister ? 'Email Address' : 'Email or Username'}
               </label>
               <input
-                type="text"
+                type={isRegister ? 'email' : 'text'}
                 required
-                placeholder="name@example.com or username"
+                placeholder={isRegister ? 'name@example.com' : 'name@example.com or username'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-12 px-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl text-sm sm:text-base text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)] transition-all"

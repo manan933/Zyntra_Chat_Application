@@ -4,15 +4,17 @@ import crypto from 'crypto';
 
 class StorageService {
   async findUserByEmail(email) {
-    console.log(`[DB] findUserByEmail: ${email}`);
-    const res = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] });
+    const clean = (email || '').toLowerCase().trim();
+    console.log(`[DB] findUserByEmail: ${clean}`);
+    const res = await db.execute({ sql: 'SELECT * FROM users WHERE LOWER(email) = LOWER(?)', args: [clean] });
     if (res.rows.length === 0) return null;
     return this.mapUserRow(res.rows[0]);
   }
 
   async findUserByUsername(username) {
-    console.log(`[DB] findUserByUsername: ${username}`);
-    const res = await db.execute({ sql: 'SELECT * FROM users WHERE primaryUsername = ?', args: [username] });
+    const clean = (username || '').toLowerCase().trim().replace(/^@/, '');
+    console.log(`[DB] findUserByUsername: ${clean}`);
+    const res = await db.execute({ sql: 'SELECT * FROM users WHERE LOWER(primaryUsername) = LOWER(?)', args: [clean] });
     if (res.rows.length === 0) return null;
     return this.mapUserRow(res.rows[0]);
   }
@@ -24,32 +26,29 @@ class StorageService {
   }
 
   async createUser({ name, email, primaryUsername, password, avatar, bio }) {
-    console.log(`[DB] createUser: ${email} / @${primaryUsername}`);
-    // Use random UUID for robust conflict-free IDs
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanUsername = (primaryUsername || '').toLowerCase().trim().replace(/^@/, '');
+    console.log(`[DB] createUser: ${cleanEmail} / @${cleanUsername}`);
     const id = `user-${crypto.randomUUID()}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
     
-    // Explicit transaction logic for bulletproof inserts
-    const transaction = await db.transaction();
-    try {
-      await transaction.execute({
-        sql: 'INSERT INTO users (_id, name, email, primaryUsername, password, avatar, bio, contexts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        args: [id, name, email, primaryUsername, hashedPassword, avatar || null, bio || '', '[]']
-      });
-      await transaction.commit();
-      console.log(`[DB] createUser success: ${id}`);
-    } catch (err) {
-      console.error(`[DB] createUser failed:`, err.message);
-      await transaction.rollback();
-      throw err;
-    }
+    await db.execute({
+      sql: 'INSERT INTO users (_id, name, email, primaryUsername, password, avatar, bio, contexts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      args: [id, name.trim(), cleanEmail, cleanUsername, hashedPassword, avatar || null, bio || '', '[]']
+    });
+    console.log(`[DB] createUser success: ${id}`);
 
     return this.findUserById(id);
   }
 
   async verifyPassword(plainPassword, hashedPassword) {
     if (!plainPassword || !hashedPassword) return false;
-    return bcrypt.compareSync(plainPassword, hashedPassword);
+    try {
+      return bcrypt.compareSync(plainPassword, hashedPassword);
+    } catch (e) {
+      console.error('[DB] Password compare error:', e);
+      return false;
+    }
   }
 
   async updateUserProfile(userId, { name, bio, avatar, phone }) {

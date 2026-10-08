@@ -14,14 +14,14 @@ const getInitialUser = () => {
 export const useAuthStore = create((set, get) => ({
   user: getInitialUser(),
   token: localStorage.getItem('zyntra_token') || null,
-  isAuthenticated: Boolean(localStorage.getItem('zyntra_token') || getInitialUser()),
+  isAuthenticated: Boolean(localStorage.getItem('zyntra_token') && getInitialUser()),
   isLoading: false,
   error: null,
 
   initAuth: async () => {
     const token = localStorage.getItem('zyntra_token');
-    if (!token && !get().user) {
-      set({ isAuthenticated: false, isLoading: false });
+    if (!token) {
+      set({ isAuthenticated: false, user: null, token: null, isLoading: false });
       return;
     }
 
@@ -32,12 +32,11 @@ export const useAuthStore = create((set, get) => ({
         localStorage.setItem('zyntra_user', JSON.stringify(user));
         set({ user, isAuthenticated: true, error: null });
         socketService.connect();
-      } else if (res.status === 401) {
+      } else if (res.status === 401 || !res.ok) {
         get().logout();
       }
     } catch (e) {
-      // Keep cached user on network error
-      console.error('ignored', e);
+      console.error('initAuth failed', e);
     } finally {
       set({ isLoading: false });
     }
@@ -46,116 +45,93 @@ export const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
 
-    let res = null;
     try {
-      res = await api.auth.login({ email, password });
-    } catch {
-      res = { ok: false };
+      const res = await api.auth.login({ email, password });
+
+      if (res.ok && res.data) {
+        const token = res.data.token;
+        const user = res.data.user || res.data;
+
+        if (token) localStorage.setItem('zyntra_token', token);
+        if (user) localStorage.setItem('zyntra_user', JSON.stringify(user));
+
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+
+        socketService.connect();
+        return { success: true };
+      }
+
+      const errorMsg = res.error || res.data?.message || 'Invalid email or password';
+      set({ isLoading: false, error: errorMsg });
+      return { success: false, error: errorMsg };
+    } catch (err) {
+      const errorMsg = err.message || 'Login failed. Please check your connection.';
+      set({ isLoading: false, error: errorMsg });
+      return { success: false, error: errorMsg };
     }
-
-    if (res?.ok && res.data) {
-      const { token, user } = res.data;
-      if (token) localStorage.setItem('zyntra_token', token);
-      if (user) localStorage.setItem('zyntra_user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
-
-      socketService.connect();
-      return { success: true };
-    }
-
-    const errorMsg = res?.error || 'Invalid email or password';
-    set({ isLoading: false, error: errorMsg });
-    return { success: false, error: errorMsg };
   },
 
   register: async ({ name, email, password, primaryUsername }) => {
     set({ isLoading: true, error: null });
-    const cleanUsername = primaryUsername.replace(/^@/, '').toLowerCase();
-    const res = await api.auth.register({
-      name,
-      email,
-      password,
-      primaryUsername: cleanUsername,
-    });
+    const cleanUsername = primaryUsername.replace(/^@/, '').toLowerCase().trim();
+    const cleanEmail = email.toLowerCase().trim();
 
-    if (res.ok && res.data) {
-      const { token, user } = res.data;
-      if (token) localStorage.setItem('zyntra_token', token);
-      if (user) localStorage.setItem('zyntra_user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
-
-      socketService.connect();
-      return { success: true };
-    }
-
-    // Fallback registration if MongoDB is offline
-    if (res.status === 503 || !res.ok) {
-      const localUser = {
-        id: `user-${Date.now()}`,
-        _id: `user-${Date.now()}`,
-        name,
-        email,
+    try {
+      const res = await api.auth.register({
+        name: name.trim(),
+        email: cleanEmail,
+        password,
         primaryUsername: cleanUsername,
-        avatar: null,
-      };
-      const token = `jwt-local-${Date.now()}`;
-      localStorage.setItem('zyntra_token', token);
-      localStorage.setItem('zyntra_user', JSON.stringify(localUser));
-
-      set({
-        user: localUser,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
       });
 
-      socketService.connect();
-      return { success: true };
-    }
+      if (res.ok && res.data) {
+        const token = res.data.token;
+        const user = res.data.user || res.data;
 
-    const errorMsg = res.error || 'Registration failed';
-    set({ isLoading: false, error: errorMsg });
-    return { success: false, error: errorMsg };
+        if (token) localStorage.setItem('zyntra_token', token);
+        if (user) localStorage.setItem('zyntra_user', JSON.stringify(user));
+
+        set({
+          user,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+
+        socketService.connect();
+        return { success: true };
+      }
+
+      const errorMsg = res.error || res.data?.message || 'Registration failed';
+      set({ isLoading: false, error: errorMsg });
+      return { success: false, error: errorMsg };
+    } catch (err) {
+      const errorMsg = err.message || 'Registration failed. Please check your connection.';
+      set({ isLoading: false, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
   },
 
   updateProfile: async ({ name, avatar }) => {
-    const res = await api.auth.updateProfile({ name, avatar });
-    if (res.ok && res.data) {
-      const updatedUser = res.data.user || res.data;
-      localStorage.setItem('zyntra_user', JSON.stringify(updatedUser));
-      set({ user: updatedUser });
-      return { success: true };
+    try {
+      const res = await api.auth.updateProfile({ name, avatar });
+      if (res.ok && res.data) {
+        const updatedUser = res.data.user || res.data;
+        localStorage.setItem('zyntra_user', JSON.stringify(updatedUser));
+        set({ user: updatedUser });
+        return { success: true };
+      }
+      return { success: false, error: res.error || 'Failed to update profile' };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-
-    // Local profile fallback update
-    const currentUser = get().user;
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        name: name || currentUser.name,
-        avatar: avatar !== undefined ? avatar : currentUser.avatar,
-      };
-      localStorage.setItem('zyntra_user', JSON.stringify(updatedUser));
-      set({ user: updatedUser });
-      return { success: true };
-    }
-
-    return { success: false, error: res.error };
   },
 
   logout: () => {
@@ -163,7 +139,6 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem('zyntra_user');
     socketService.disconnect();
     
-    // Clear chat store state to prevent data leakage to next user
     import('./chatStore').then(({ useChatStore }) => {
       useChatStore.getState().resetStore?.();
     });
