@@ -199,6 +199,12 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem('zyntra_token');
     localStorage.removeItem('zyntra_user');
     socketService.disconnect();
+    
+    // Clear chat store state to prevent data leakage to next user
+    import('./chatStore').then(({ useChatStore }) => {
+      useChatStore.getState().resetStore?.();
+    });
+
     set({
       user: null,
       token: null,

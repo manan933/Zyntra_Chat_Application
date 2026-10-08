@@ -7,15 +7,32 @@ const isMongoLive = () => mongoose.connection.readyState === 1;
 
 // @desc    Get personal contacts and groups for current user
 // @route   GET /api/contacts
-// @access  Public / Private
+// @access  Private
 export const getContactsAndGroups = async (req, res, next) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authorized' });
+    }
+
     if (!isMongoLive()) {
       const data = await storageService.getContactsAndGroups();
+      
+      // Filter offline data for the current user
+      const isSoumya = req.user.primaryUsername === 'soumya' || req.user.email === 'soumya@zyntra.com';
+      const userId = req.user._id?.toString() || req.user.id;
+      
+      const filteredContacts = isSoumya 
+        ? data.contacts.filter(c => c.ownerId === userId || c.ownerId === 'user-1')
+        : data.contacts.filter(c => c.ownerId === userId);
+        
+      const filteredGroups = isSoumya
+        ? data.groups.filter(g => g.creatorId === userId || g.creatorId === 'user-1')
+        : data.groups.filter(g => g.creatorId === userId);
+
       return res.status(200).json({
         success: true,
-        contacts: data.contacts,
-        groups: data.groups,
+        contacts: filteredContacts,
+        groups: filteredGroups,
       });
     }
 

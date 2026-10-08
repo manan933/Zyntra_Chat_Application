@@ -11,11 +11,14 @@ class SocketService {
   connect() {
     if (this.socket && this.socket.connected) return this.socket;
 
+    const token = localStorage.getItem('zyntra_token');
+
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      auth: { token },
     });
 
     this.socket.on('connect', () => {
@@ -41,6 +44,7 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.currentRoom = null;
   }
 
   joinRoom(roomId) {

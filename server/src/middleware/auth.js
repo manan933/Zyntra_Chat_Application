@@ -35,11 +35,6 @@ export const protect = async (req, res, next) => {
     }
 
     if (!user) {
-      // Fallback: decode session for demo user
-      user = await storageService.findUserByEmail('soumya@zyntra.com');
-    }
-
-    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'User no longer exists with this token.',

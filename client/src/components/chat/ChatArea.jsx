@@ -299,10 +299,10 @@ export const ChatArea = ({
 
               const msg = item.data;
               const isOwn = Boolean(
-                currentUserId &&
-                  (msg.senderId === currentUserId ||
-                    (currentUser?.primaryUsername &&
-                      msg.senderUsername?.toLowerCase() === currentUser.primaryUsername.toLowerCase()))
+                (currentUserId && msg.senderId && msg.senderId === currentUserId) ||
+                (currentUser?.primaryUsername &&
+                 msg.senderUsername &&
+                 msg.senderUsername.toLowerCase() === currentUser.primaryUsername.toLowerCase())
               );
 
               return (

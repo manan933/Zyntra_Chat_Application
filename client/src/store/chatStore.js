@@ -211,6 +211,16 @@ export const useChatStore = create((set, get) => ({
   isLoadingChats: false,
   isLoadingMessages: false,
 
+  // Reset store for logout
+  resetStore: () => set({
+    activeChat: null,
+    contacts: INITIAL_CONTACTS,
+    groups: INITIAL_GROUPS,
+    workspaces: INITIAL_WORKSPACES,
+    messages: INITIAL_MESSAGES,
+    typingStatus: {},
+  }),
+
   // Initialize all chat streams (Contacts, Groups, Workspaces)
   loadChats: async () => {
     set({ isLoadingChats: true });

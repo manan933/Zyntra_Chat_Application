@@ -24,6 +24,37 @@ export const Composer = ({ chatId, onSend, currentUser }) => {
   const emojiRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  const currentChatIdRef = useRef(chatId);
+
+  // F20: Reset state on chat switch
+  // F21: Track current chatId for async callbacks
+  useEffect(() => {
+    setText('');
+    setAttachment(null);
+    setShowEmoji(false);
+    setIsUploading(false);
+    currentChatIdRef.current = chatId;
+  }, [chatId]);
+
+  // F19: Cleanup object URLs to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (attachment?.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(attachment.url);
+      }
+    };
+  }, [attachment?.url]);
+
+  // F22: Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (currentChatIdRef.current && currentUser) {
+        socketService.stopTyping(currentChatIdRef.current, currentUser.id || currentUser._id);
+      }
+    };
+  }, [currentUser]);
+
   // Close emoji picker when clicking outside
   useEffect(() => {
     const handleOutside = (e) => {
@@ -81,6 +112,7 @@ export const Composer = ({ chatId, onSend, currentUser }) => {
     setIsUploading(true);
     try {
       const res = await api.upload.file(file);
+      if (currentChatIdRef.current !== chatId) return;
       if (res.ok && res.data?.url) {
         setAttachment({
           name: res.data.name || file.name,

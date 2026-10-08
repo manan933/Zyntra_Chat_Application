@@ -1,10 +1,25 @@
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import Message from '../models/Message.js';
 import storageService from '../services/storageService.js';
 
 export const setupChatSocket = (io) => {
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token;
+    if (!token) {
+      return next(new Error('Authentication error: No token provided'));
+    }
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'zyntra_jwt_secret_dev_key_2026');
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      return next(new Error('Authentication error: Invalid token'));
+    }
+  });
+
   io.on('connection', (socket) => {
-    console.log(`[Socket.io] Client connected: ${socket.id}`);
+    console.log(`[Socket.io] Client connected: ${socket.id}, User ID: ${socket.user?.id || 'unknown'}`);
 
     // Join a specific chat room (channel, DM, or personal group)
     socket.on('join_room', (roomId) => {
@@ -46,9 +61,9 @@ export const setupChatSocket = (io) => {
           id: messageId,
           chatId,
           chatType: chatType || 'workspace-node',
-          senderId: senderId || 'user-1',
-          senderName: senderName || 'Soumya',
-          senderUsername: senderUsername || 'soumya',
+          senderId: socket.user?.id || senderId || 'user-1',
+          senderName: senderName || 'User',
+          senderUsername: senderUsername || '',
           senderAvatar: senderAvatar || null,
           content: finalContent,
           type: attachment?.type || 'text',
@@ -66,8 +81,8 @@ export const setupChatSocket = (io) => {
             id: messageId,
             chatId,
             chatType: chatType || 'workspace-node',
-            senderId: senderId || 'user-1',
-            senderName: senderName || 'Soumya',
+            senderId: socket.user?.id || senderId || 'user-1',
+            senderName: senderName || 'User',
             senderUsername: senderUsername || '',
             senderAvatar: senderAvatar || null,
             content: finalContent,
