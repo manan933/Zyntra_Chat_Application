@@ -1,14 +1,17 @@
 import { db } from '../config/turso.js';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 class StorageService {
   async findUserByEmail(email) {
+    console.log(`[DB] findUserByEmail: ${email}`);
     const res = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] });
     if (res.rows.length === 0) return null;
     return this.mapUserRow(res.rows[0]);
   }
 
   async findUserByUsername(username) {
+    console.log(`[DB] findUserByUsername: ${username}`);
     const res = await db.execute({ sql: 'SELECT * FROM users WHERE primaryUsername = ?', args: [username] });
     if (res.rows.length === 0) return null;
     return this.mapUserRow(res.rows[0]);
@@ -21,12 +24,26 @@ class StorageService {
   }
 
   async createUser({ name, email, primaryUsername, password, avatar, bio }) {
-    const id = `user-${Date.now()}`;
+    console.log(`[DB] createUser: ${email} / @${primaryUsername}`);
+    // Use random UUID for robust conflict-free IDs
+    const id = `user-${crypto.randomUUID()}`;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    await db.execute({
-      sql: 'INSERT INTO users (_id, name, email, primaryUsername, password, avatar, bio, contexts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      args: [id, name, email, primaryUsername, hashedPassword, avatar || null, bio || '', '[]']
-    });
+    
+    // Explicit transaction logic for bulletproof inserts
+    const transaction = await db.transaction();
+    try {
+      await transaction.execute({
+        sql: 'INSERT INTO users (_id, name, email, primaryUsername, password, avatar, bio, contexts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [id, name, email, primaryUsername, hashedPassword, avatar || null, bio || '', '[]']
+      });
+      await transaction.commit();
+      console.log(`[DB] createUser success: ${id}`);
+    } catch (err) {
+      console.error(`[DB] createUser failed:`, err.message);
+      await transaction.rollback();
+      throw err;
+    }
+
     return this.findUserById(id);
   }
 
@@ -151,7 +168,7 @@ class StorageService {
         sql: 'INSERT INTO contacts (id, user_id, contact_id, type) VALUES (?, ?, ?, ?)',
         args: [contactId, 'current-user', targetId, 'contact']
       });
-    } catch (e) { /* ignored */ } // Ignore unique constraint
+    } catch (e) { /* ignored */ }
     
     return {
       id: contactId,
@@ -204,7 +221,7 @@ class StorageService {
   }
 
   async getWorkspaceTree(workspaceId) {
-    return this.getAllNodes(); // Simplified for now
+    return this.getAllNodes();
   }
 
   async createWorkspace(name, contextualUsername) {
@@ -242,6 +259,14 @@ class StorageService {
   }
 
   mapUserRow(row) {
+    if (!row) return null;
+    let parsedContexts = [];
+    try {
+      parsedContexts = JSON.parse(row.contexts || '[]');
+    } catch (e) {
+      console.warn(`[DB] Failed to parse contexts for user ${row.email}`);
+    }
+
     return {
       _id: row._id,
       id: row._id,
@@ -252,7 +277,7 @@ class StorageService {
       avatar: row.avatar,
       bio: row.bio,
       status: row.status,
-      contexts: JSON.parse(row.contexts || '[]'),
+      contexts: parsedContexts,
     };
   }
 }
