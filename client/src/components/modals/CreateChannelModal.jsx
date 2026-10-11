@@ -7,12 +7,12 @@ export const CreateChannelModal = ({ isOpen, onClose, activeWorkspace, onAddChan
   const [folderName, setFolderName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!channelName.trim()) return;
 
     setIsSubmitting(true);
-    onAddChannel?.(activeWorkspace?.id, channelName.trim(), folderName.trim() || null);
+    await onAddChannel?.(activeWorkspace?.id, channelName.trim(), folderName.trim() || null);
     setIsSubmitting(false);
     setChannelName('');
     setFolderName('');

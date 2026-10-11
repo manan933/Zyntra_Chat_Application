@@ -30,7 +30,7 @@ const getAllDescendantIds = async (parentId) => {
 export const getWorkspaces = async (req, res, next) => {
   try {
     if (!isMongoLive()) {
-      const workspaces = await storageService.getWorkspaces();
+      const workspaces = await storageService.getWorkspaces(req.user?._id || req.user?.id);
       return res.status(200).json({
         success: true,
         count: workspaces.length,
@@ -203,7 +203,7 @@ export const createWorkspace = async (req, res, next) => {
     }
 
     if (!isMongoLive()) {
-      const newWs = await storageService.createWorkspace(name.trim(), contextualUsername);
+      const newWs = await storageService.createWorkspace(name.trim(), contextualUsername, req.user?._id || req.user?.id);
       return res.status(201).json({
         success: true,
         data: {
@@ -493,7 +493,13 @@ export const joinGroupByCode = async (req, res, next) => {
     const clean = code.trim().toUpperCase();
 
     if (!isMongoLive()) {
-      const workspace = await storageService.joinWorkspace(clean);
+      const workspace = await storageService.joinWorkspace(clean, req.user?._id || req.user?.id);
+      if (!workspace) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invalid workspace invite code or workspace not found',
+        });
+      }
       return res.status(200).json({
         success: true,
         data: {
@@ -508,7 +514,13 @@ export const joinGroupByCode = async (req, res, next) => {
 
       if (!node) {
         // Also check if matches workspace join code in storage
-        const fallbackWs = await storageService.joinWorkspace(clean);
+        const fallbackWs = await storageService.joinWorkspace(clean, req.user?._id || req.user?.id);
+        if (!fallbackWs) {
+          return res.status(404).json({
+            success: false,
+            message: 'Invalid workspace invite code or channel not found',
+          });
+        }
         return res.status(200).json({
           success: true,
           data: {

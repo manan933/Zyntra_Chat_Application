@@ -37,6 +37,7 @@ export const ChatArea = ({
   typingUsers = [],
   workspaces = [],
   onOpenWorkspaceModal,
+  onSelectWorkspace,
   onBack,
   onSend,
   onEditMessage,
@@ -138,17 +139,21 @@ export const ChatArea = ({
           <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider px-2 mb-3">Your Workspaces</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {workspaces.map(ws => (
-              <div key={ws.id} className="p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl flex flex-col items-start hover:border-[var(--accent)] transition-colors">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+              <div 
+                key={ws.id} 
+                onClick={() => onSelectWorkspace ? onSelectWorkspace(ws) : onOpenWorkspaceModal?.()}
+                className="p-4 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl flex flex-col items-start hover:border-[var(--accent)] hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 mb-2 w-full">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                     {ws.name.charAt(0)}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--text-primary)] m-0">{ws.name}</h4>
-                    <span className="text-[11px] text-[var(--text-muted)] font-mono">{ws.membersCount} members</span>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-[var(--text-primary)] m-0 truncate group-hover:text-[var(--accent)] transition-colors">{ws.name}</h4>
+                    <span className="text-[11px] text-[var(--text-muted)] font-mono">{ws.membersCount || ws.memberCount || 1} members · {ws.nodes?.length || 1} channels</span>
                   </div>
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-1 mb-0">{ws.description || 'No description provided.'}</p>
+                <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mt-1 mb-0">{ws.description || 'Click to open workspace and start chatting in channels.'}</p>
               </div>
             ))}
             <button 
@@ -265,7 +270,7 @@ export const ChatArea = ({
                 setIsVideoCall(false);
                 setCallModalOpen(true);
               }}
-              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent hidden sm:flex items-center justify-center"
+              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
               title="Voice Call"
             >
               <Phone size={17} />
@@ -278,7 +283,7 @@ export const ChatArea = ({
                 setIsVideoCall(true);
                 setCallModalOpen(true);
               }}
-              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent hidden sm:flex items-center justify-center"
+              className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
               title="Video Call"
             >
               <Video size={17} />
@@ -382,13 +387,21 @@ export const ChatArea = ({
         />
       </div>
 
-      {/* ── Right-Side Details Drawer ───────────────────────────────── */}
+      {/* ── Right-Side Details Drawer (Responsive Mobile Slide-Over) ── */}
       {infoOpen && (
-        <GroupInfoPanel
-          chat={chat}
-          onClose={() => setInfoOpen(false)}
-          onLeaveChat={onLeaveChat}
-        />
+        <div className="fixed inset-0 z-50 md:relative md:inset-auto md:z-20 flex">
+          <div
+            className="fixed inset-0 bg-black/60 md:hidden backdrop-blur-xs animate-fade-in"
+            onClick={() => setInfoOpen(false)}
+          />
+          <div className="relative w-full max-w-[340px] sm:max-w-sm md:w-80 h-full ml-auto z-10 animate-fade-in shadow-2xl">
+            <GroupInfoPanel
+              chat={chat}
+              onClose={() => setInfoOpen(false)}
+              onLeaveChat={onLeaveChat}
+            />
+          </div>
+        </div>
       )}
 
       {/* ── Voice & Video Call Modal ────────────────────────────────── */}

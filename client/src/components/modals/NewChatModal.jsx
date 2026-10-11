@@ -14,6 +14,7 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
   // Group creation state
   const [groupName, setGroupName] = useState('');
   const [groupDesc, setGroupDesc] = useState('');
+  const [joinCode, setJoinCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Debounced search
@@ -84,6 +85,31 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
       }
     } catch {
       setError('An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleJoinGroup = async (e) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const clean = joinCode.replace(/^@/, '').trim();
+      const res = await onAddContact(clean);
+      if (res?.success) {
+        onClose();
+        setJoinCode('');
+        if (res.contact) {
+          onStartDirectChat?.(res.contact);
+        }
+      } else {
+        setError(res?.error || `Could not find chat or contact for "${clean}"`);
+      }
+    } catch {
+      setError('An error occurred while joining');
     } finally {
       setIsSubmitting(false);
     }
@@ -247,21 +273,17 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
           </button>
         </form>
       ) : (
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          alert('Join group by ID triggered: ' + groupName); // Since we don't have backend, mock it
-          onClose();
-        }} className="flex flex-col gap-3">
+        <form onSubmit={handleJoinGroup} className="flex flex-col gap-3">
           <div>
             <label className="text-[11px] font-bold text-[var(--text-secondary)] block mb-1">
-              Group Invite Code / ID *
+              Group Invite Code or Friend's Handle *
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. GRP-XYZ-123"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="e.g. @priya_s or GRP-101"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
               className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
               autoFocus
             />
@@ -269,11 +291,11 @@ export const NewChatModal = ({ isOpen, onClose, onAddContact, onCreateGroup, onS
 
           <button
             type="submit"
-            disabled={!groupName.trim()}
+            disabled={!joinCode.trim() || isSubmitting}
             className="w-full py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-xl text-xs font-bold transition-all cursor-pointer border-none shadow-sm disabled:opacity-50 mt-2 flex items-center justify-center gap-1.5"
           >
-            <Users size={14} />
-            <span>Join Group</span>
+            {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+            <span>Join Group or Chat</span>
           </button>
         </form>
       )}

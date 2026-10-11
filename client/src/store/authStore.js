@@ -17,6 +17,8 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: Boolean(localStorage.getItem('zyntra_token') && getInitialUser()),
   isLoading: false,
   error: null,
+  promptWorkspaceOnLogin: false,
+  setPromptWorkspaceOnLogin: (val) => set({ promptWorkspaceOnLogin: val }),
 
   initAuth: async () => {
     const token = localStorage.getItem('zyntra_token');
@@ -61,6 +63,7 @@ export const useAuthStore = create((set, get) => ({
           isAuthenticated: true,
           isLoading: false,
           error: null,
+          promptWorkspaceOnLogin: true,
         });
 
         socketService.connect();
@@ -103,6 +106,7 @@ export const useAuthStore = create((set, get) => ({
           isAuthenticated: true,
           isLoading: false,
           error: null,
+          promptWorkspaceOnLogin: true,
         });
 
         socketService.connect();

@@ -23,7 +23,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md', maxWidth 
   const widthClass = maxWidth || SIZE_MAP[size] || 'max-w-md';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fade-in"
@@ -32,12 +32,12 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md', maxWidth 
 
       {/* Modal Card */}
       <div
-        className={`relative w-full ${widthClass} bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] z-10`}
+        className={`relative w-full ${widthClass} bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] z-10`}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-            <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight m-0">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-[var(--border)] shrink-0">
+            <h3 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-tight m-0">
               {title}
             </h3>
             <button
@@ -52,7 +52,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md', maxWidth 
         )}
 
         {/* Body */}
-        <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+        <div className="p-3.5 sm:p-5 overflow-y-auto custom-scrollbar flex-1">
           {children}
         </div>
       </div>

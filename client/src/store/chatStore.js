@@ -340,52 +340,46 @@ export const useChatStore = create((set, get) => ({
   },
 
   createWorkspace: async (name, contextualUsername = '') => {
-    const res = await api.workspaces.create({ name, contextualUsername });
-    if (res.ok && res.data) {
-      await get().loadChats();
-      return { success: true, workspace: res.data };
+    try {
+      const res = await api.workspaces.create({ name, contextualUsername });
+      if (res.ok && res.data) {
+        await get().loadChats();
+        const ws = res.data.workspace || res.data;
+        return { success: true, workspace: ws };
+      }
+      return { success: false, error: res.error || 'Failed to create workspace' };
+    } catch (e) {
+      return { success: false, error: e.message || 'Failed to create workspace' };
     }
-
-    // Local fallback creation
-    const newWs = {
-      id: `ws-${Date.now()}`,
-      name,
-      membersCount: 1,
-      nodes: [
-        { id: `node-${Date.now()}-gen`, name: 'general', membersCount: 1 },
-      ],
-    };
-    set((state) => ({
-      workspaces: [newWs, ...state.workspaces],
-    }));
-    return { success: true, workspace: newWs };
   },
 
   joinWorkspace: async (code) => {
-    const res = await api.workspaces.join(code);
-    if (res.ok && res.data) {
-      await get().loadChats();
-      return { success: true, workspace: res.data };
+    try {
+      const clean = code.trim().toUpperCase();
+      const res = await api.workspaces.join(clean);
+      if (res.ok && res.data) {
+        await get().loadChats();
+        const ws = res.data.workspace || res.data;
+        return { success: true, workspace: ws };
+      }
+      return { success: false, error: res.error || 'Invalid workspace invite code' };
+    } catch (e) {
+      return { success: false, error: e.message || 'Failed to join workspace' };
     }
-
-    // Local fallback mock joining
-    const joinedWs = {
-      id: `ws-${Date.now()}`,
-      name: `Workspace (${code})`,
-      membersCount: 5,
-      joinCode: code,
-      nodes: [
-        { id: `node-${Date.now()}-gen`, name: 'general', membersCount: 5 },
-      ],
-    };
-    set((state) => ({
-      workspaces: [joinedWs, ...state.workspaces],
-    }));
-    return { success: true, workspace: joinedWs };
   },
 
-  addChannelToWorkspace: (workspaceId, channelName, folder = null) => {
+  addChannelToWorkspace: async (workspaceId, channelName, folder = null) => {
     const cleanName = channelName.replace(/^#/, '').trim().toLowerCase();
+    try {
+      const res = await api.workspaces.createNode(workspaceId, { name: cleanName, folder });
+      if (res.ok && res.data) {
+        await get().loadChats();
+        return { success: true, channel: res.data };
+      }
+    } catch (e) {
+      console.warn('API addChannel warning:', e);
+    }
+
     const newChannel = {
       id: `node-${Date.now()}-${cleanName}`,
       name: cleanName,
@@ -401,7 +395,7 @@ export const useChatStore = create((set, get) => ({
       ),
     }));
 
-    return newChannel;
+    return { success: true, channel: newChannel };
   },
 
   leaveWorkspace: (workspaceId) => {

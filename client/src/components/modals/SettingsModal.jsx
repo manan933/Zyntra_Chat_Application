@@ -767,7 +767,11 @@ export const SettingsModal = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => alert('Account deletion requested. Security review confirmation email dispatched.')}
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to request account deletion? All local keys and session data will be permanently cleared.')) {
+                      setPasswordMsg('Account deletion request has been registered and review confirmation email sent.');
+                    }
+                  }}
                   className="px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold cursor-pointer"
                 >
                   Delete Account

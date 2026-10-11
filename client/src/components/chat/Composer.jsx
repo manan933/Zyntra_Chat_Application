@@ -181,7 +181,7 @@ export const Composer = ({ chatId, onSend, currentUser, policy = {} }) => {
 
       {/* Emoji Picker Popover */}
       {showEmoji && (
-        <div ref={emojiRef} className="absolute bottom-full left-4 mb-2 z-50">
+        <div ref={emojiRef} className="absolute bottom-full left-2 sm:left-4 mb-2 z-50 max-w-[calc(100vw-24px)]">
           <EmojiPicker onSelect={handleInsertEmoji} onClose={() => setShowEmoji(false)} />
         </div>
       )}

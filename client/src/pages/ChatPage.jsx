@@ -9,7 +9,7 @@ import useAuthStore from '../store/authStore';
 import socketService from '../api/socket';
 
 export const ChatPage = () => {
-  const { user, logout, updateProfile } = useAuthStore();
+  const { user, logout, updateProfile, promptWorkspaceOnLogin, setPromptWorkspaceOnLogin } = useAuthStore();
   const {
     activeChat,
     contacts,
@@ -38,6 +38,15 @@ export const ChatPage = () => {
   const [newChatModalOpen, setNewChatModalOpen] = useState(false);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState(null);
+
+  // Automatically show workspace selection popup on login
+  useEffect(() => {
+    const prompted = sessionStorage.getItem('zyntra_workspace_prompted');
+    if (promptWorkspaceOnLogin || prompted !== 'true') {
+      setWorkspaceModalOpen(true);
+    }
+  }, [promptWorkspaceOnLogin]);
 
   useEffect(() => {
     loadChats();
@@ -56,6 +65,29 @@ export const ChatPage = () => {
       socketService.off('user_typing', handleTyping);
     };
   }, [loadChats, receiveMessage, updateReaction, setTyping]);
+
+  const handleSelectWorkspace = (workspace) => {
+    if (!workspace) return;
+    setSelectedWorkspace(workspace);
+    sessionStorage.setItem('zyntra_workspace_prompted', 'true');
+    setPromptWorkspaceOnLogin?.(false);
+
+    // If workspace has nodes, automatically open the first channel (e.g. general)
+    if (workspace.nodes && workspace.nodes.length > 0) {
+      const channel = workspace.nodes[0];
+      selectChat({
+        id: channel.id,
+        name: `#${channel.name}`,
+        rawName: channel.name,
+        workspaceName: workspace.name,
+        type: 'channel',
+        avatar: null,
+        membersCount: channel.membersCount || workspace.membersCount || 1,
+        isAnnouncement: channel.isAnnouncement,
+        joinCode: workspace.joinCode,
+      });
+    }
+  };
 
   const activeMessages = activeChat?.id ? messages[activeChat.id] || [] : [];
   const currentTypingUsers = activeChat?.id ? typingStatus[activeChat.id] || [] : [];
@@ -93,6 +125,7 @@ export const ChatPage = () => {
             workspaces={workspaces}
             activeChat={activeChat}
             currentUser={user}
+            selectedWorkspace={selectedWorkspace}
             onSelectChat={(chat) => selectChat(chat)}
             onOpenNewChat={() => setNewChatModalOpen(true)}
             onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
@@ -122,6 +155,7 @@ export const ChatPage = () => {
             typingUsers={currentTypingUsers}
             workspaces={workspaces}
             onOpenWorkspaceModal={() => setWorkspaceModalOpen(true)}
+            onSelectWorkspace={handleSelectWorkspace}
             onBack={closeChat}
             onSend={(content, attachment) =>
               activeChat && sendMessage(activeChat.id, content, attachment, user)
@@ -154,6 +188,9 @@ export const ChatPage = () => {
       <WorkspaceModal
         isOpen={workspaceModalOpen}
         onClose={() => setWorkspaceModalOpen(false)}
+        workspaces={workspaces}
+        activeWorkspace={selectedWorkspace || workspaces[0]}
+        onSelectWorkspace={handleSelectWorkspace}
         onCreateWorkspace={createWorkspace}
         onJoinWorkspace={joinWorkspace}
       />

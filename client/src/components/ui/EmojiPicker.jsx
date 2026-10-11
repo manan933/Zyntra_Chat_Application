@@ -30,7 +30,7 @@ export const EmojiPicker = ({ onSelect, onClose }) => {
 
   return (
     <div
-      className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl p-3 w-72 sm:w-80 flex flex-col z-50 select-none animate-scale-in"
+      className="bg-[var(--bg-primary)] border border-[var(--border)] rounded-2xl shadow-2xl p-3 w-72 sm:w-80 max-w-[calc(100vw-28px)] flex flex-col z-50 select-none animate-scale-in"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Search Input */}

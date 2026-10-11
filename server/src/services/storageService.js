@@ -326,13 +326,84 @@ class StorageService {
     return { id, name, description, type: 'group', membersCount: 1 };
   }
 
-  async getWorkspaces() {
-    const res = await db.execute('SELECT * FROM workspaces');
-    return res.rows.map(w => ({
-      ...w,
-      nodes: [],
-      settings: JSON.parse(w.settings || '{}')
-    }));
+  async getWorkspaces(userId) {
+    const res = await db.execute('SELECT * FROM workspaces ORDER BY created_at ASC');
+    let workspaces = res.rows;
+
+    // If completely empty, auto-seed default rich workspaces
+    if (workspaces.length === 0) {
+      await this.seedDefaultWorkspaces();
+      const freshRes = await db.execute('SELECT * FROM workspaces ORDER BY created_at ASC');
+      workspaces = freshRes.rows;
+    }
+
+    const result = [];
+    for (const w of workspaces) {
+      const nodesRes = await db.execute({
+        sql: 'SELECT * FROM nodes WHERE workspace_id = ? ORDER BY id ASC',
+        args: [w.id]
+      });
+
+      let nodes = nodesRes.rows.map(n => ({
+        id: n.id,
+        name: n.name,
+        membersCount: n.membersCount || 1,
+        folder: n.folder || null,
+        isAnnouncement: Boolean(n.isAnnouncement)
+      }));
+
+      // Ensure every workspace has at least a general channel
+      if (nodes.length === 0) {
+        const defaultNode = await this.addNodeToWorkspace(w.id, { name: 'general', folder: null });
+        nodes = [{
+          id: defaultNode.id,
+          name: defaultNode.name,
+          membersCount: 1,
+          folder: null,
+          isAnnouncement: false
+        }];
+      }
+
+      result.push({
+        ...w,
+        membersCount: w.membersCount || 5,
+        memberCount: w.membersCount || 5,
+        settings: typeof w.settings === 'string' ? JSON.parse(w.settings || '{}') : (w.settings || {}),
+        nodes
+      });
+    }
+
+    return result;
+  }
+
+  async seedDefaultWorkspaces() {
+    try {
+      const ws1Id = 'ws-giet-univ';
+      const ws2Id = 'ws-abc-tech';
+      
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO workspaces (id, name, joinCode, description, settings, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [ws1Id, 'GIET University', 'ZYN-GIET-0001', 'Official university academic & project communication', '{"allowEmojis":true,"allowAttachments":true}', new Date().toISOString()]
+      });
+
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO workspaces (id, name, joinCode, description, settings, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [ws2Id, 'ABC Technologies', 'ZYN-ABC-0001', 'Enterprise engineering and technology collaboration', '{"allowEmojis":true,"allowAttachments":true}', new Date().toISOString()]
+      });
+
+      // Seed channels for GIET
+      await this.addNodeToWorkspace(ws1Id, { name: 'announcements', folder: null, isAnnouncement: true });
+      await this.addNodeToWorkspace(ws1Id, { name: 'general', folder: null });
+      await this.addNodeToWorkspace(ws1Id, { name: 'cse-aiml', folder: 'Computer Science' });
+      await this.addNodeToWorkspace(ws1Id, { name: 'capstone-projects', folder: 'Computer Science' });
+
+      // Seed channels for ABC Technologies
+      await this.addNodeToWorkspace(ws2Id, { name: 'general', folder: null });
+      await this.addNodeToWorkspace(ws2Id, { name: 'react-frontend', folder: 'Engineering' });
+      await this.addNodeToWorkspace(ws2Id, { name: 'backend-node', folder: 'Engineering' });
+    } catch (e) {
+      console.warn('[DB] seedDefaultWorkspaces warning:', e.message);
+    }
   }
 
   async getAllNodes() {
@@ -359,38 +430,108 @@ class StorageService {
     return this.getAllNodes();
   }
 
-  async createWorkspace(name, contextualUsername) {
+  async createWorkspace(name, contextualUsername, userId) {
     const wsId = `ws-${Date.now()}`;
-    const code = `WS-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const cleanPrefix = name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'X') || 'WS';
+    const code = `ZYN-${cleanPrefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     await db.execute({
       sql: 'INSERT INTO workspaces (id, name, joinCode, description, settings, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      args: [wsId, name, code, '', '{}', new Date().toISOString()]
+      args: [wsId, name.trim(), code, '', '{"allowEmojis":true,"allowAttachments":true}', new Date().toISOString()]
     });
-    
-    await this.addNodeToWorkspace(wsId, { name: 'general', folder: null });
-    
+
+    if (userId) {
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)',
+        args: [wsId, userId, 'owner']
+      }).catch(() => {});
+    }
+
+    const genNode = await this.addNodeToWorkspace(wsId, { name: 'general', folder: null });
+
     return {
-      id: wsId, name, joinCode: code, membersCount: 1, isOwner: true, role: 'owner', nodes: []
+      id: wsId,
+      name: name.trim(),
+      joinCode: code,
+      membersCount: 1,
+      memberCount: 1,
+      isOwner: true,
+      role: 'owner',
+      settings: { allowEmojis: true, allowAttachments: true },
+      nodes: [{
+        id: genNode.id,
+        name: genNode.name,
+        membersCount: 1,
+        folder: null,
+        isAnnouncement: false
+      }]
     };
   }
 
   async addNodeToWorkspace(workspaceId, { name, folder, description, isAnnouncement = false }) {
     const cleanName = (name || 'new-channel').replace(/^#/, '').toLowerCase().trim();
     const nodeId = `${workspaceId}-${cleanName}-${Date.now().toString(36)}`;
-    
+
     await db.execute({
       sql: 'INSERT INTO nodes (id, workspace_id, name, folder, isAnnouncement, membersCount) VALUES (?, ?, ?, ?, ?, ?)',
       args: [nodeId, workspaceId, cleanName, folder || null, isAnnouncement ? 1 : 0, 1]
     });
-    
-    return { id: nodeId, name: cleanName, folder, description, isAnnouncement };
+
+    return {
+      id: nodeId,
+      workspaceId,
+      name: cleanName,
+      folder: folder || null,
+      description: description || '',
+      isAnnouncement: Boolean(isAnnouncement),
+      membersCount: 1
+    };
   }
 
-  async joinWorkspace(code) {
+  async joinWorkspace(code, userId) {
     const cleanCode = code.toUpperCase().trim();
-    const res = await db.execute({ sql: 'SELECT * FROM workspaces WHERE joinCode = ?', args: [cleanCode] });
+    const res = await db.execute({ sql: 'SELECT * FROM workspaces WHERE UPPER(joinCode) = ?', args: [cleanCode] });
     if (res.rows.length === 0) return null;
-    return res.rows[0];
+    const w = res.rows[0];
+
+    if (userId) {
+      await db.execute({
+        sql: 'INSERT OR IGNORE INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)',
+        args: [w.id, userId, 'member']
+      }).catch(() => {});
+    }
+
+    const nodesRes = await db.execute({
+      sql: 'SELECT * FROM nodes WHERE workspace_id = ? ORDER BY id ASC',
+      args: [w.id]
+    });
+
+    let nodes = nodesRes.rows.map(n => ({
+      id: n.id,
+      name: n.name,
+      membersCount: n.membersCount || 1,
+      folder: n.folder || null,
+      isAnnouncement: Boolean(n.isAnnouncement)
+    }));
+
+    if (nodes.length === 0) {
+      const defaultNode = await this.addNodeToWorkspace(w.id, { name: 'general', folder: null });
+      nodes = [{
+        id: defaultNode.id,
+        name: defaultNode.name,
+        membersCount: 1,
+        folder: null,
+        isAnnouncement: false
+      }];
+    }
+
+    return {
+      ...w,
+      membersCount: w.membersCount || 1,
+      memberCount: w.membersCount || 1,
+      settings: typeof w.settings === 'string' ? JSON.parse(w.settings || '{}') : (w.settings || {}),
+      nodes
+    };
   }
 
   mapUserRow(row) {

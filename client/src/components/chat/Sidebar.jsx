@@ -42,6 +42,7 @@ export const Sidebar = ({
   workspaces = [],
   activeChat,
   currentUser,
+  selectedWorkspace,
   onSelectChat,
   onOpenNewChat,
   onOpenWorkspaceModal,
@@ -57,11 +58,32 @@ export const Sidebar = ({
   const [expandedFolders, setExpandedFolders] = useState({
     'Computer Science & Eng': true,
     'Computer Science / AI & ML': true,
+    'Computer Science': true,
     Engineering: true,
   });
   const [copiedWsCode, setCopiedWsCode] = useState(false);
 
   const { theme, toggleTheme } = useThemeStore();
+
+  // Sync selected workspace from external selection (e.g. login modal or dashboard)
+  React.useEffect(() => {
+    if (selectedWorkspace) {
+      const idx = workspaces.findIndex((w) => w.id === selectedWorkspace.id || w.name === selectedWorkspace.name);
+      if (idx !== -1) {
+        setActiveWorkspaceIndex(idx);
+        setActiveTab('workplace');
+      }
+    }
+  }, [selectedWorkspace, workspaces]);
+
+  // Sync activeChat when channel is chosen
+  React.useEffect(() => {
+    if (activeChat?.type === 'channel' && activeChat.workspaceName) {
+      setActiveTab('workplace');
+      const idx = workspaces.findIndex((w) => w.name === activeChat.workspaceName);
+      if (idx !== -1) setActiveWorkspaceIndex(idx);
+    }
+  }, [activeChat, workspaces]);
 
   const currentWorkspace = workspaces[activeWorkspaceIndex] || workspaces[0];
 
@@ -411,6 +433,36 @@ export const Sidebar = ({
               })}
             </>
           )
+        ) : workspaces.length === 0 ? (
+          <div className="text-center py-10 px-4 text-[var(--text-muted)] text-xs">
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto mb-2.5">
+              <Building2 size={20} />
+            </div>
+            <p className="font-bold mb-1 text-[var(--text-primary)]">No Workspaces Joined</p>
+            <p className="mb-4 text-[var(--text-muted)]">Connect with your team to see channels and discussions.</p>
+            <button
+              type="button"
+              onClick={onOpenWorkspaceModal}
+              className="py-1.5 px-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold rounded-xl border-none cursor-pointer shadow-xs"
+            >
+              Choose or Join Workspace
+            </button>
+          </div>
+        ) : groupedWorkspaceChannels.root.length === 0 && Object.keys(groupedWorkspaceChannels.folders).length === 0 ? (
+          <div className="text-center py-10 px-4 text-[var(--text-muted)] text-xs">
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto mb-2.5">
+              <Hash size={20} />
+            </div>
+            <p className="font-bold mb-1 text-[var(--text-primary)]">No Channels in {currentWorkspace?.name}</p>
+            <p className="mb-4 text-[var(--text-muted)]">Create the first channel to start communicating.</p>
+            <button
+              type="button"
+              onClick={() => setCreateChannelModalOpen(true)}
+              className="py-1.5 px-3 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold rounded-xl border-none cursor-pointer shadow-xs"
+            >
+              + Create Channel
+            </button>
+          </div>
         ) : (
           /* ── WORKPLACES CHANNELS TREE ────────────────────────────── */
           <div className="space-y-2 select-none pt-1">
